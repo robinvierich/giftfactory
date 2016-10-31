@@ -1,6 +1,12 @@
 
 var ASSET_PATHS = {
-  BG: 'images/bg.jpg'
+  BG: 'images/bg.jpg',
+  CONVEYOR_BELTS: {
+    1: 'images/conveyorbelt1.png',
+    2: 'images/conveyorbelt2.png',
+    3: 'images/conveyorbelt3.png',
+    4: 'images/conveyorbelt4.png'
+  }
 };
 
 var HEIGHT = 1080;
@@ -39,10 +45,33 @@ var buildSceneGraph = function () {
       var bg = PIXI.Sprite.fromFrame(ASSET_PATHS.BG);
       worldContainer.addChild(bg);
 
+      var conveyorBeltContainer = new PIXI.Container();
+      worldContainer.addChild(conveyorBeltContainer);
+
+      var CONVEYOR_BELT_DATA = [
+        { position: { x: 0, y: 0 }, assetPath: ASSET_PATHS.CONVEYOR_BELTS[1], rotation: Math.PI / 8, anchor: {x: 0.5, y: 0.5}, scale: {x: 2, y: 1} },
+        { position: { x: 0, y: 400 }, assetPath: ASSET_PATHS.CONVEYOR_BELTS[2], rotation: Math.PI / 8, anchor: {x: 0.5, y: 0.5}, scale: {x: 2, y: 1} },
+        { position: { x: 1282, y: 0 }, assetPath: ASSET_PATHS.CONVEYOR_BELTS[3], rotation: -Math.PI / 8, anchor: {x: 0.5, y: 0.5}, scale: {x: 2, y: 1} },
+        { position: { x: 1282, y: 400 }, assetPath: ASSET_PATHS.CONVEYOR_BELTS[4], rotation: -Math.PI / 8, anchor: {x: 0.5, y: 0.5}, scale: {x: 2, y: 1} }
+      ];
+
+      CONVEYOR_BELT_DATA.forEach(function (conveyorBeltDatum) {
+        var conveyorBelt = PIXI.Sprite.fromFrame(conveyorBeltDatum.assetPath);
+        conveyorBelt.position.set(conveyorBeltDatum.position.x, conveyorBeltDatum.position.y);
+        conveyorBelt.anchor.set(conveyorBeltDatum.anchor.x, conveyorBeltDatum.anchor.y);
+        conveyorBelt.scale.set(conveyorBeltDatum.scale.x, conveyorBeltDatum.scale.y);
+        conveyorBelt.rotation = conveyorBeltDatum.rotation;
+        conveyorBeltContainer.addChild(conveyorBelt);
+      });
+
+      conveyorBeltContainer.position.set(conveyorBeltContainer.children[0].width / 2);
+        
+
   return {
     root: root,
       worldContainer: worldContainer,
         bg: bg,
+        conveyorBeltContainer: conveyorBeltContainer
   };
 };
 
