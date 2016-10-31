@@ -6,6 +6,12 @@ var ASSET_PATHS = {
     2: 'images/conveyorbelt2.png',
     3: 'images/conveyorbelt3.png',
     4: 'images/conveyorbelt4.png'
+  },
+  GIFTS: {
+    0: 'images/gift.png'
+  },
+  BAD_GIFTS: {
+    0: 'images/elfboy.jpg'
   }
 };
 
@@ -45,33 +51,47 @@ var buildSceneGraph = function () {
       var bg = PIXI.Sprite.fromFrame(ASSET_PATHS.BG);
       worldContainer.addChild(bg);
 
-      var conveyorBeltContainer = new PIXI.Container();
-      worldContainer.addChild(conveyorBeltContainer);
+      var allConveyorBeltsContainer = new PIXI.Container();
+      worldContainer.addChild(allConveyorBeltsContainer);
 
       var CONVEYOR_BELT_DATA = [
         { position: { x: 0, y: 0 }, assetPath: ASSET_PATHS.CONVEYOR_BELTS[1], rotation: Math.PI / 8, anchor: {x: 0.5, y: 0.5}, scale: {x: 2, y: 1} },
+        { position: { x: 400, y: 120 }, assetPath: ASSET_PATHS.CONVEYOR_BELTS[1], rotation: 0, anchor: {x: 0.5, y: 0.5}, scale: {x: 0.75, y: 1} }, // drop conveyor
+
         { position: { x: 0, y: 400 }, assetPath: ASSET_PATHS.CONVEYOR_BELTS[2], rotation: Math.PI / 8, anchor: {x: 0.5, y: 0.5}, scale: {x: 2, y: 1} },
+        { position: { x: 400, y: 520 }, assetPath: ASSET_PATHS.CONVEYOR_BELTS[2], rotation: 0, anchor: {x: 0.5, y: 0.5}, scale: {x: 0.75, y: 1} }, // drop conveyor
+
         { position: { x: 1282, y: 0 }, assetPath: ASSET_PATHS.CONVEYOR_BELTS[3], rotation: -Math.PI / 8, anchor: {x: 0.5, y: 0.5}, scale: {x: 2, y: 1} },
-        { position: { x: 1282, y: 400 }, assetPath: ASSET_PATHS.CONVEYOR_BELTS[4], rotation: -Math.PI / 8, anchor: {x: 0.5, y: 0.5}, scale: {x: 2, y: 1} }
+        { position: { x: 882, y: 120 }, assetPath: ASSET_PATHS.CONVEYOR_BELTS[3], rotation: 0, anchor: {x: 0.5, y: 0.5}, scale: {x: 0.75, y: 1} }, // drop conveyor
+
+        { position: { x: 1282, y: 400 }, assetPath: ASSET_PATHS.CONVEYOR_BELTS[4], rotation: -Math.PI / 8, anchor: {x: 0.5, y: 0.5}, scale: {x: 2, y: 1} },
+        { position: { x: 882, y: 520 }, assetPath: ASSET_PATHS.CONVEYOR_BELTS[4], rotation: 0, anchor: {x: 0.5, y: 0.5}, scale: {x: 0.75, y: 1} }, // drop conveyor
       ];
 
       CONVEYOR_BELT_DATA.forEach(function (conveyorBeltDatum) {
+        //var conveyorBeltContainer = new PIXI.Container();
         var conveyorBelt = PIXI.Sprite.fromFrame(conveyorBeltDatum.assetPath);
+        //var conveyorBeltGiftContainer = new PIXI.Container();
+
         conveyorBelt.position.set(conveyorBeltDatum.position.x, conveyorBeltDatum.position.y);
         conveyorBelt.anchor.set(conveyorBeltDatum.anchor.x, conveyorBeltDatum.anchor.y);
         conveyorBelt.scale.set(conveyorBeltDatum.scale.x, conveyorBeltDatum.scale.y);
         conveyorBelt.rotation = conveyorBeltDatum.rotation;
-        conveyorBeltContainer.addChild(conveyorBelt);
+        allConveyorBeltsContainer.addChild(conveyorBelt);
       });
 
-      conveyorBeltContainer.position.set(conveyorBeltContainer.children[0].width / 2);
+      allConveyorBeltsContainer.position.set(allConveyorBeltsContainer.children[0].width / 2); 
+
+      var giftContainer = new PIXI.Container();
+      worldContainer.addChild(giftContainer);
         
 
   return {
     root: root,
       worldContainer: worldContainer,
         bg: bg,
-        conveyorBeltContainer: conveyorBeltContainer
+        allConveyorBeltsContainer: allConveyorBeltsContainer,
+        giftContainer: giftContainer
   };
 };
 
