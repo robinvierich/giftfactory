@@ -299,6 +299,9 @@ var processKeyDown = function(dt, event, sceneIndex) {
   var giftToGrab = getGiftToGrabFromConveyorBelt(conveyorBelt);
   if (!giftToGrab)  { return; }
 
+  var gifts = g_conveyorBeltToGifts.get(conveyorBelt);
+  gifts.splice(gifts.indexOf(giftToGrab), 1);
+
   grabGift(giftToGrab);
 };
 
