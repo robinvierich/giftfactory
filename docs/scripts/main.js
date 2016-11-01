@@ -26,16 +26,36 @@ var FPS = 60;
 
 var eventQueue = [];
 
+var TIME_BETWEEN_FEEDS = 1;
+
 var conveyorBeltToGifts = new Map();
 var g_conveyorBeltFromDirections = new Map();
 
-var TIME_BETWEEN_FEEDS = 1;
 var g_feedTimer = 0;
 var g_nextConveyorBeltIndex = 0;
+var g_tweens = [];
 
 var getTickerDt = function (ticker) {
   var ms = Math.min(ticker.elapsedMS, ticker._maxElapsedMS);
   return ms / 1000 * ticker.speed;
+};
+
+
+var expoInOut = function(t, start, end) {
+  if (t === 0) { return start; }
+  if (t === 1) { return end; }
+
+  var t2 = t * 2;
+
+  if (t2 < 1) { 
+    return ((end - start) / 2) * (Math.pow(2, 10 * (t2 - 1)) + start);
+  } else {
+    return ((end - start) / 2) * (-Math.pow(2, -10 * (t2 - 1)) + 2) + start; 
+  }
+};
+
+var linear = function(t, start, end) {
+  return start + (end - start) * t;
 };
 
 var createTween = function (obj, start, end, duration, easingFunc, onComplete) {
@@ -68,12 +88,12 @@ var updateTween = function (dt, tween) {
       obj[prop] = newVal;
     }
   }
-  
-  tween.t = Math.min(tween.t + dt, tween.duration);
 
   if (tween.t >= tween.duration && tween.onComplete) {
     tween.onComplete(tween);
   }
+  
+  tween.t = Math.min(tween.t + dt, tween.duration);
 };
 
 
@@ -85,7 +105,19 @@ var getDropConveyorBelt = function(conveyorBelt) {
 
 var getConveyorBeltFromDirection = function(conveyorBelt) {
   return g_conveyorBeltFromDirections.get(conveyorBelt);
-}
+};
+
+var getGiftStartPosition = function(gift, conveyorBelt) {
+  var fromDirection = getConveyorBeltFromDirection(conveyorBelt);
+
+  var conveyorBeltGlobalPos = conveyorBelt.getGlobalPosition();
+  var conveyorBeltBounds = conveyorBelt.getBounds();
+
+  var x = fromDirection === LEFT ? -gift.width : WIDTH + gift.width;
+  var y = conveyorBeltGlobalPos.y - conveyorBeltBounds.height / 2 - gift.height / 2;
+
+  return new PIXI.Point(x, y);
+};
 
 var getGiftTransforms = function(conveyorBelt) {
   var dropConveyorBelt = getDropConveyorBelt(conveyorBelt);
@@ -108,7 +140,7 @@ var getGiftTransforms = function(conveyorBelt) {
   var x3 = -directionMultiplier * distanceAlongBelt * Math.cos(rotation);
   var y3 = -directionMultiplier * distanceAlongBelt * Math.sin(rotation) - conveyorBelt.height / 2;
 
-  var x4 = 0;
+  var x4 = -30 * directionMultiplier;
   var y4 = -dropConveyorBelt.height / 2;
 
   return [
@@ -127,8 +159,26 @@ var addGift = function(giftContainer) {
   return gift;
 };
 
+var createGiftTweens = function(gift, endPos, endRot) {
+  var DURATION = TIME_BETWEEN_FEEDS / 3;
+
+  var startPos = new PIXI.Point(gift.x, gift.y);
+
+  var posTween = createTween(gift.position, startPos, endPos, DURATION, linear, function(tween) {
+    g_tweens.splice(g_tweens.indexOf(tween), 1);
+  });
+
+  var rotTween = createTween(gift, {rotation: gift.rotation}, {rotation: endRot}, DURATION, linear, function(tween) {
+    g_tweens.splice(g_tweens.indexOf(tween), 1);
+  });
+
+  g_tweens.push(posTween);
+  g_tweens.push(rotTween);
+};
+
 var feedGifts = function(conveyorBelt, giftContainer) {
   var newGift = addGift(giftContainer);
+  newGift.position = getGiftStartPosition(newGift, conveyorBelt);
 
   var gifts = conveyorBeltToGifts.get(conveyorBelt);
   if (!gifts) {
@@ -146,8 +196,9 @@ var feedGifts = function(conveyorBelt, giftContainer) {
     var gift = gifts[i];
     var nextGiftTransform = giftTransforms[i];
     // TODO: add a tween here instead
-    gift.position = nextGiftTransform.position;
-    gift.rotation = nextGiftTransform.rotation;
+    //gift.position = nextGiftTransform.position;
+    //gift.rotation = nextGiftTransform.rotation;
+    createGiftTweens(gift, nextGiftTransform.position, nextGiftTransform.rotation);
   }
 
   if (fallingGift) {
@@ -170,6 +221,9 @@ var updateFeedTimer = function(dt, sceneIndex) {
 
 var update = function (dt, sceneIndex) {
   updateFeedTimer(dt, sceneIndex);
+  for (var i = 0; i < g_tweens.length; i++) {
+    updateTween(dt, g_tweens[i]);
+  }
 };
 
 var run = function (renderer, sceneIndex) {
