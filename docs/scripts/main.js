@@ -7,12 +7,8 @@ var ASSET_PATHS = {
     3: 'images/conveyorbelt3.png',
     4: 'images/conveyorbelt4.png'
   },
-  GIFTS: {
-    0: 'images/gift.png'
-  },
-  BAD_GIFTS: {
-    0: 'images/elfboy.jpg'
-  },
+  GIFTS: ['images/gift.png'],
+  BAD_GIFTS: ['images/elfboy.jpg'],
   SACK: 'images/sac.jpg',
   SCALE: 'images/scale.png',
   NEEDLE: 'images/needle.png'
@@ -20,6 +16,9 @@ var ASSET_PATHS = {
 
 var LEFT = 0;
 var RIGHT = 1;
+
+var GOOD = 0;
+var BAD = 1;
 
 
 var HEIGHT = 1080;
@@ -29,14 +28,19 @@ var FPS = 60;
 
 var eventQueue = [];
 
-var TIME_BETWEEN_FEEDS = 0.75;
+var TIME_BETWEEN_FEEDS = 0.25;
 
 var NEEDLE_ROT_MIN = -Math.PI / 4;
 var NEEDLE_ROT_MAX = Math.PI / 4;
 var MAX_SCORE = 100;
 
-var conveyorBeltToGifts = new Map();
+var MAX_GIFTS_PER_CONVEYOR_BELT = 4;
+
+var g_conveyorBeltToGifts = new Map();
 var g_conveyorBeltFromDirections = new Map();
+var g_keyToConveyorBelt = new Map();
+
+var g_giftToType = new Map();
 
 var g_feedTimer = 0;
 var g_nextConveyorBeltIndex = 0;
@@ -109,6 +113,7 @@ var updateTween = function (dt, tween) {
 
 var increaseScore = function(increase) {
   g_score += increase;
+  g_score = Math.min(Math.max(g_score, 0), MAX_SCORE);
 };
 
 var updateNeedle = function(dt, sceneIndex) {
@@ -169,11 +174,23 @@ var getGiftTransforms = function(conveyorBelt) {
   ]
 };
 
+
+var rollForGiftType = function() {
+  return (Math.random() < 0.8) ? GOOD : BAD;
+};
+
 var addGift = function(giftContainer) {
-  var gift = PIXI.Sprite.fromFrame(ASSET_PATHS.GIFTS[0]);
+  var giftType = rollForGiftType();
+  var giftAssetList = (giftType === GOOD) ? ASSET_PATHS.GIFTS : ASSET_PATHS.BAD_GIFTS;
+  var giftAsset = giftAssetList[Math.floor(Math.random() * giftAssetList.length)];
+
+  var gift = PIXI.Sprite.fromFrame(giftAsset);
   gift.anchor.set(0.5, 1);
   gift.scale.set(0.75);
   giftContainer.addChild(gift);
+
+  g_giftToType.set(gift, giftType);
+
   return gift;
 };
 
@@ -220,12 +237,7 @@ var feedGifts = function(conveyorBelt, giftContainer, sack) {
   var newGift = addGift(giftContainer);
   newGift.position = getGiftStartPosition(newGift, conveyorBelt);
 
-  var gifts = conveyorBeltToGifts.get(conveyorBelt);
-  if (!gifts) {
-    gifts = [];
-    conveyorBeltToGifts.set(conveyorBelt, gifts);
-  }
-
+  var gifts = g_conveyorBeltToGifts.get(conveyorBelt);
   var giftTransforms = getGiftTransforms(conveyorBelt);
 
   gifts.unshift(newGift);
@@ -258,8 +270,36 @@ var updateFeedTimer = function(dt, sceneIndex) {
 };
 
 
+var getGiftToGrabFromConveyorBelt = function(conveyorBelt) {
+  var gifts = g_conveyorBeltToGifts.get(conveyorBelt);
+  if (gifts.length >= MAX_GIFTS_PER_CONVEYOR_BELT) {
+    return gifts[gifts.length - 1];
+  }
+
+  return null;
+};
+
+var grabGift = function(gift) {
+  var DURATION = 0.75;
+
+  var startPos = new PIXI.Point(gift.x, gift.y);
+  var endPos = new PIXI.Point(WIDTH/2, -100);
+
+  var tween = createTween(gift.position, startPos, endPos, DURATION, quadIn, function(tween) {
+    removeGift(gift);
+  });
+
+  startTween(tween);
+};
+
 var processKeyDown = function(dt, event, sceneIndex) {
-  // TODO
+  var conveyorBelt = g_keyToConveyorBelt.get(event.key);
+  if (!conveyorBelt) { return; }
+
+  var giftToGrab = getGiftToGrabFromConveyorBelt(conveyorBelt);
+  if (!giftToGrab)  { return; }
+
+  grabGift(giftToGrab);
 };
 
 var processInput = function(dt, sceneIndex) {
@@ -281,7 +321,8 @@ var rectHitTest = function(rect1, rect2) {
 };
 
 var getScoreFromGift = function(gift) {
-  return 1;
+  var giftType = g_giftToType.get(gift);
+  return giftType === GOOD ? 1 : -3
 };
 
 var checkForSackCollision = function(dt, sceneIndex) {
@@ -338,10 +379,16 @@ var addConveyorBelt = function(conveyorBeltDatum) {
   conveyorBelt.scale.set(conveyorBeltDatum.scale.x, conveyorBeltDatum.scale.y);
   conveyorBelt.rotation = conveyorBeltDatum.rotation;
 
+  g_conveyorBeltToGifts.set(conveyorBelt, []);
+
   var fromDirection = conveyorBeltDatum.fromDirection;
   g_conveyorBeltFromDirections.set(conveyorBelt, fromDirection);
 
-  return conveyorBelt
+  if (conveyorBeltDatum.key) {
+    g_keyToConveyorBelt.set(conveyorBeltDatum.key, conveyorBelt); 
+  }
+
+  return conveyorBelt;
 };
 
 var buildSceneGraph = function () {
@@ -376,6 +423,7 @@ var buildSceneGraph = function () {
         { 
           position: { x: 0, y: 0 }, assetPath: ASSET_PATHS.CONVEYOR_BELTS[1], rotation: Math.PI / 8, anchor: {x: 0.5, y: 0.5}, scale: {x: 2, y: 1}, 
           fromDirection: LEFT,
+          key: '1',
           dropConveyorBeltDatum: { 
             position: { x: 400, y: 120 }, assetPath: ASSET_PATHS.CONVEYOR_BELTS[1], rotation: 0, anchor: {x: 0.5, y: 0.5}, scale: {x: 0.75, y: 1},
             fromDirection: LEFT,
@@ -385,6 +433,7 @@ var buildSceneGraph = function () {
         { 
           position: { x: 0, y: 300 }, assetPath: ASSET_PATHS.CONVEYOR_BELTS[2], rotation: Math.PI / 8, anchor: {x: 0.5, y: 0.5}, scale: {x: 2, y: 1},
           fromDirection: LEFT,
+          key: '2',
           dropConveyorBeltDatum: { 
             position: { x: 400, y: 420 }, assetPath: ASSET_PATHS.CONVEYOR_BELTS[2], rotation: 0, anchor: {x: 0.5, y: 0.5}, scale: {x: 0.75, y: 1},
             fromDirection: LEFT,
@@ -394,6 +443,7 @@ var buildSceneGraph = function () {
         { 
           position: { x: 1282, y: 0 }, assetPath: ASSET_PATHS.CONVEYOR_BELTS[3], rotation: -Math.PI / 8, anchor: {x: 0.5, y: 0.5}, scale: {x: 2, y: 1},
           fromDirection: RIGHT,
+          key: '3',
           dropConveyorBeltDatum: { 
             position: { x: 882, y: 120 }, assetPath: ASSET_PATHS.CONVEYOR_BELTS[3], rotation: 0, anchor: {x: 0.5, y: 0.5}, scale: {x: 0.75, y: 1},
             fromDirection: LEFT,
@@ -403,6 +453,7 @@ var buildSceneGraph = function () {
         { 
           position: { x: 1282, y: 300 }, assetPath: ASSET_PATHS.CONVEYOR_BELTS[4], rotation: -Math.PI / 8, anchor: {x: 0.5, y: 0.5}, scale: {x: 2, y: 1},
           fromDirection: RIGHT,
+          key: '4',
           dropConveyorBeltDatum: { 
             position: { x: 882, y: 420 }, assetPath: ASSET_PATHS.CONVEYOR_BELTS[4], rotation: 0, anchor: {x: 0.5, y: 0.5}, scale: {x: 0.75, y: 1},
             fromDirection: LEFT,
