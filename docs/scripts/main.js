@@ -12,7 +12,10 @@ var ASSET_PATHS = {
   },
   BAD_GIFTS: {
     0: 'images/elfboy.jpg'
-  }
+  },
+  SAC: 'images/sac.jpg',
+  SCALE: 'images/scale.png',
+  NEEDLE: 'images/needle.png'
 };
 
 var LEFT = 0;
@@ -26,7 +29,11 @@ var FPS = 60;
 
 var eventQueue = [];
 
-var TIME_BETWEEN_FEEDS = 1;
+var TIME_BETWEEN_FEEDS = 0.75;
+
+var NEEDLE_ROT_MIN = -Math.PI / 4;
+var NEEDLE_ROT_MAX = Math.PI / 4;
+var MAX_SCORE = 100;
 
 var conveyorBeltToGifts = new Map();
 var g_conveyorBeltFromDirections = new Map();
@@ -34,12 +41,12 @@ var g_conveyorBeltFromDirections = new Map();
 var g_feedTimer = 0;
 var g_nextConveyorBeltIndex = 0;
 var g_tweens = [];
+var g_score = 0;
 
 var getTickerDt = function (ticker) {
   var ms = Math.min(ticker.elapsedMS, ticker._maxElapsedMS);
   return ms / 1000 * ticker.speed;
 };
-
 
 var expoInOut = function(t, start, end) {
   if (t === 0) { return start; }
@@ -96,6 +103,13 @@ var updateTween = function (dt, tween) {
   tween.t = Math.min(tween.t + dt, tween.duration);
 };
 
+var increaseScore = function(increase) {
+  g_score += increase;
+};
+
+var updateNeedle = function(dt, sceneIndex) {
+  sceneIndex.needle.rotation = linear(g_score / MAX_SCORE, NEEDLE_ROT_MIN, NEEDLE_ROT_MAX);
+};
 
 var getDropConveyorBelt = function(conveyorBelt) {
   var parent = conveyorBelt.parent;
@@ -218,12 +232,29 @@ var updateFeedTimer = function(dt, sceneIndex) {
   }
 };
 
+var processKeyDown = function(dt, event, sceneIndex) {
+};
+
+var processInput = function(dt, sceneIndex) {
+  while (eventQueue.length) {
+    var eventData = eventQueue.shift();
+    switch (eventData.type) {
+    case 'keydown':
+      processKeyDown(dt, eventData.event, sceneIndex);
+      break;
+    }
+  }
+};
+
 
 var update = function (dt, sceneIndex) {
+  processInput(dt, sceneIndex);
   updateFeedTimer(dt, sceneIndex);
   for (var i = 0; i < g_tweens.length; i++) {
     updateTween(dt, g_tweens[i]);
   }
+
+  updateNeedle(dt, sceneIndex);
 };
 
 var run = function (renderer, sceneIndex) {
@@ -261,6 +292,21 @@ var buildSceneGraph = function () {
 
       var bg = PIXI.Sprite.fromFrame(ASSET_PATHS.BG);
       worldContainer.addChild(bg);
+
+      var scaleContainer = new PIXI.Container();
+      scaleContainer.scale.set(0.25);
+      scaleContainer.position.set(WIDTH/2, 100);
+      worldContainer.addChild(scaleContainer);
+        var scale = PIXI.Sprite.fromFrame(ASSET_PATHS.SCALE);
+        scale.anchor.set(0.5, 0.5)
+        scaleContainer.addChild(scale);
+
+        var needle = PIXI.Sprite.fromFrame(ASSET_PATHS.NEEDLE);
+        needle.anchor.set(0.5, 1);
+        needle.position.set(scale.x, -110);
+        needle.pivot.y = 93;
+        needle.rotation = -Math.PI / 4;
+        scaleContainer.addChild(needle);
 
       var allConveyorBeltsContainer = new PIXI.Container();
       worldContainer.addChild(allConveyorBeltsContainer);
@@ -312,10 +358,16 @@ var buildSceneGraph = function () {
         allConveyorBeltsContainer.addChild(dropConveyorBelt);
       });
 
-      allConveyorBeltsContainer.position.set(allConveyorBeltsContainer.children[0].width / 2); 
+      allConveyorBeltsContainer.position.set(allConveyorBeltsContainer.children[0].width / 2);
 
       var giftContainer = new PIXI.Container();
       worldContainer.addChild(giftContainer);
+
+      var sac = PIXI.Sprite.fromFrame(ASSET_PATHS.SAC);
+      sac.anchor.set(0.5, 1);
+      sac.x = WIDTH / 2;
+      sac.y = HEIGHT;
+      worldContainer.addChild(sac);
         
 
   return {
@@ -323,7 +375,10 @@ var buildSceneGraph = function () {
       worldContainer: worldContainer,
         bg: bg,
         allConveyorBeltsContainer: allConveyorBeltsContainer,
-        giftContainer: giftContainer
+        giftContainer: giftContainer,
+        scaleContainer: scaleContainer,
+        scale: scale,
+        needle: needle
   };
 };
 
