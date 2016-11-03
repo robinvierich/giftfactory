@@ -42,15 +42,15 @@ var RIGHT = 1;
 var GOOD = 0;
 var BAD = 1;
 
+var TOP = 0;
+var BOTTOM = 1;
 
 var HEIGHT = 1080;
 var WIDTH = 1920;
 
 var FPS = 60;
 
-var eventQueue = [];
 
-var TIME_BETWEEN_FEEDS = 0.125;
 
 var NEEDLE_ROT_MIN = -Math.PI / 2;
 var NEEDLE_ROT_MAX = Math.PI / 2;
@@ -59,14 +59,17 @@ var MAX_SCORE = 100;
 var MAX_GIFTS_PER_CONVEYOR_BELT = 5;
 
 var g_conveyorBeltToGifts = new Map();
-var g_conveyorBeltFromDirections = new Map();
+var g_conveyorBeltToData = new Map();
 var g_keyToConveyorBelt = new Map();
 
 var g_giftToType = new Map();
 
+var g_eventQueue = [];
+var g_tweens = [];
+
+var g_timeBetweenFeeds = 0.125;
 var g_feedTimer = 0;
 var g_nextConveyorBeltIndex = 0;
-var g_tweens = [];
 var g_score = 0;
 
 var getTickerDt = function (ticker) {
@@ -160,7 +163,7 @@ var getDropConveyorBelt = function(conveyorBelt) {
 };
 
 var getConveyorBeltFromDirection = function(conveyorBelt) {
-  return g_conveyorBeltFromDirections.get(conveyorBelt);
+  return g_conveyorBeltToData.get(conveyorBelt).fromDirection;
 };
 
 var getGiftStartPosition = function(gift, conveyorBelt) {
@@ -230,7 +233,7 @@ var addGift = function(giftContainer) {
 
 var removeGift = function(gift) {
   gift.parent.removeChild(gift);
-}
+};
 
 var startTween = function(tween) {
   var onComplete = tween.onComplete;
@@ -246,7 +249,7 @@ var startTween = function(tween) {
 };
 
 var createGiftTweens = function(gift, endPos, endRot) {
-  var DURATION = TIME_BETWEEN_FEEDS / 3;
+  var DURATION = g_timeBetweenFeeds / 3;
 
   var startPos = new PIXI.Point(gift.x, gift.y);
 
@@ -308,7 +311,7 @@ var feedGifts = function(conveyorBelt, giftContainer, sack) {
 
 var updateFeedTimer = function(dt, sceneIndex) {
   g_feedTimer += dt;
-  if (g_feedTimer >= TIME_BETWEEN_FEEDS) {
+  if (g_feedTimer >= g_timeBetweenFeeds) {
     var conveyorBelt = sceneIndex.allConveyorBeltsContainer.children[g_nextConveyorBeltIndex];
     feedGifts(conveyorBelt, sceneIndex.giftContainer, sceneIndex.sack);
     g_nextConveyorBeltIndex = (g_nextConveyorBeltIndex + 2) % sceneIndex.allConveyorBeltsContainer.children.length;
@@ -325,8 +328,14 @@ var getGiftToGrabFromConveyorBelt = function(conveyorBelt) {
   return null;
 };
 
-var grabGift = function(gift, armsContainer) {
+var grabGift = function(gift, sceneIndex, topOrBottom) {
   var DURATION = 0.5;
+
+  var giftGrabContainer = sceneIndex.giftGrabContainer;
+  var armsContainer = sceneIndex.armsContainer;
+
+  gift.parent.removeChild(gift);
+  giftGrabContainer.addChild(gift);
 
   var arms = PIXI.Sprite.fromFrame(ASSET_PATHS.ARMS.OPEN);
   arms.anchor.set(0.5, 1);
@@ -335,7 +344,7 @@ var grabGift = function(gift, armsContainer) {
 
   var armStartPos = new PIXI.Point(
     Math.random() * (3/5) * WIDTH + (1/5) * WIDTH,
-    -100
+    (topOrBottom === TOP) ? -100 : HEIGHT + 100
   );
 
   var armsGrabPos = new PIXI.Point(gift.x, gift.y);
@@ -375,12 +384,13 @@ var processKeyDown = function(dt, event, sceneIndex) {
   var gifts = g_conveyorBeltToGifts.get(conveyorBelt);
   gifts.splice(gifts.indexOf(giftToGrab), 1);
 
-  grabGift(giftToGrab, sceneIndex.armsContainer);
+  var conveyorBeltDatum = g_conveyorBeltToData.get(conveyorBelt);
+  grabGift(giftToGrab, sceneIndex, conveyorBeltDatum.topOrBottom);
 };
 
 var processInput = function(dt, sceneIndex) {
-  while (eventQueue.length) {
-    var eventData = eventQueue.shift();
+  while (g_eventQueue.length) {
+    var eventData = g_eventQueue.shift();
     switch (eventData.type) {
     case 'keydown':
       processKeyDown(dt, eventData.event, sceneIndex);
@@ -455,10 +465,9 @@ var startGame = function (renderer, sceneIndex) {
 
 var addConveyorBelt = function(conveyorBeltDatum) {
   var conveyorBelt = PIXI.Sprite.fromFrame(conveyorBeltDatum.assetPath);
+  g_conveyorBeltToData.set(conveyorBelt, conveyorBeltDatum);
 
   var fromDirection = conveyorBeltDatum.fromDirection;
-  g_conveyorBeltFromDirections.set(conveyorBelt, fromDirection);
-
   var directionMultiplier = (fromDirection === LEFT) ? 1 : -1;
 
   conveyorBelt.position.set(conveyorBeltDatum.position.x, conveyorBeltDatum.position.y);
@@ -539,6 +548,7 @@ var buildSceneGraph = function () {
         {
           position: { x: CONVEYOR_BELT_LEFT_X, y: CONVEYOR_BELT_TOP_Y }, assetPath: ASSET_PATHS.CONVEYOR_BELTS[1], rotation: CONVEYOR_BELT_ROTATION, anchor: {x: 0.5, y: 0.5}, scale: {x: ASSET_SCALE, y: ASSET_SCALE},
           fromDirection: LEFT,
+          topOrBottom: TOP,
           key: '1',
           dropConveyorBeltDatum: {
             position: { x: DROP_CONVEYOR_BELT_LEFT_X, y: DROP_CONVEYOR_BELT_TOP_Y }, assetPath: ASSET_PATHS.DROP_PLATFORM, rotation: 0, anchor: {x: 0.5, y: 0.5}, scale: {x: ASSET_SCALE, y: ASSET_SCALE},
@@ -549,6 +559,7 @@ var buildSceneGraph = function () {
         {
           position: { x: CONVEYOR_BELT_LEFT_X, y: CONVEYOR_BELT_BOTTOM_Y }, assetPath: ASSET_PATHS.CONVEYOR_BELTS[2], rotation: CONVEYOR_BELT_ROTATION, anchor: {x: 0.5, y: 0.5}, scale: {x: ASSET_SCALE, y: ASSET_SCALE},
           fromDirection: LEFT,
+          topOrBottom: BOTTOM,
           key: '2',
           dropConveyorBeltDatum: {
             position: { x: DROP_CONVEYOR_BELT_LEFT_X, y: DROP_CONVEYOR_BELT_BOTTOM_Y }, assetPath: ASSET_PATHS.DROP_PLATFORM, rotation: 0, anchor: {x: 0.5, y: 0.5}, scale: {x: ASSET_SCALE, y: ASSET_SCALE},
@@ -559,6 +570,7 @@ var buildSceneGraph = function () {
         {
           position: { x: CONVEYOR_BELT_RIGHT_X, y: CONVEYOR_BELT_TOP_Y }, assetPath: ASSET_PATHS.CONVEYOR_BELTS[3], rotation: -CONVEYOR_BELT_ROTATION, anchor: {x: 0.5, y: 0.5}, scale: {x: ASSET_SCALE, y: ASSET_SCALE},
           fromDirection: RIGHT,
+          topOrBottom: TOP,
           key: '3',
           dropConveyorBeltDatum: {
             position: { x: DROP_CONVEYOR_BELT_RIGHT_X, y: DROP_CONVEYOR_BELT_TOP_Y }, assetPath: ASSET_PATHS.DROP_PLATFORM, rotation: 0, anchor: {x: 0.5, y: 0.5}, scale: {x: ASSET_SCALE, y: ASSET_SCALE},
@@ -569,6 +581,7 @@ var buildSceneGraph = function () {
         {
           position: { x: CONVEYOR_BELT_RIGHT_X, y: CONVEYOR_BELT_BOTTOM_Y }, assetPath: ASSET_PATHS.CONVEYOR_BELTS[4], rotation: -CONVEYOR_BELT_ROTATION, anchor: {x: 0.5, y: 0.5}, scale: {x: ASSET_SCALE, y: ASSET_SCALE},
           fromDirection: RIGHT,
+          topOrBottom: BOTTOM,
           key: '4',
           dropConveyorBeltDatum: {
             position: { x: DROP_CONVEYOR_BELT_RIGHT_X, y: DROP_CONVEYOR_BELT_BOTTOM_Y }, assetPath: ASSET_PATHS.DROP_PLATFORM, rotation: 0, anchor: {x: 0.5, y: 0.5}, scale: {x: ASSET_SCALE, y: ASSET_SCALE},
@@ -598,6 +611,9 @@ var buildSceneGraph = function () {
       sack.scale.set(ASSET_SCALE);
       worldContainer.addChild(sack);
 
+      var giftGrabContainer = new PIXI.Container();
+      worldContainer.addChild(giftGrabContainer);
+
       var armsContainer = new PIXI.Container();
       worldContainer.addChild(armsContainer);
 
@@ -612,7 +628,8 @@ var buildSceneGraph = function () {
         allConveyorBeltsContainer: allConveyorBeltsContainer,
         giftContainer: giftContainer,
         sack: sack,
-        armsContainer: armsContainer
+        giftGrabContainer: giftGrabContainer,
+        armsContainer: armsContainer,
   };
 };
 
@@ -620,12 +637,12 @@ var buildSceneGraph = function () {
 var addKeyHandlers = function (renderer, worldContainer) {
   window.addEventListener('keydown', function (e) {
     // push keydown event to event queue
-    eventQueue.push({ type: 'keydown', event: e });
+    g_eventQueue.push({ type: 'keydown', event: e });
   });
 
   window.addEventListener('keyup', function (e) {
     // push keyup event to event queue
-    eventQueue.push({ type: 'keyup', event: e });
+    g_eventQueue.push({ type: 'keyup', event: e });
   });
 };
 
