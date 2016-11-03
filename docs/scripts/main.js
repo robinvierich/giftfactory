@@ -26,7 +26,12 @@ var ASSET_PATHS = {
     SPIT: 'images/bag-spit.png',
   },
   SCALE: 'images/scale-pole.png',
-  NEEDLE: 'images/scale-arrow.png'
+  NEEDLE: 'images/scale-arrow.png',
+
+  ARMS: {
+    OPEN: 'images/arms-hands-reach.png',
+    CLOSED: 'images/arms-hands-grab.png',
+  }
 };
 
 var ASSET_SCALE = 0.33;
@@ -45,13 +50,13 @@ var FPS = 60;
 
 var eventQueue = [];
 
-var TIME_BETWEEN_FEEDS = 0.25;
+var TIME_BETWEEN_FEEDS = 0.125;
 
 var NEEDLE_ROT_MIN = -Math.PI / 2;
 var NEEDLE_ROT_MAX = Math.PI / 2;
 var MAX_SCORE = 100;
 
-var MAX_GIFTS_PER_CONVEYOR_BELT = 4;
+var MAX_GIFTS_PER_CONVEYOR_BELT = 5;
 
 var g_conveyorBeltToGifts = new Map();
 var g_conveyorBeltFromDirections = new Map();
@@ -90,6 +95,11 @@ var quadIn = function(t, start, end) {
   return (end - start) * (t * t) + start;
 };
 
+var lutEasing = function (lut, t) {
+  var idx = Math.floor(linear(t, 0, lut.length - 1));
+  return lut[idx];
+};
+
 var createTween = function (obj, start, end, duration, easingFunc, onComplete) {
   onComplete = onComplete || null;
 
@@ -108,6 +118,12 @@ var createTween = function (obj, start, end, duration, easingFunc, onComplete) {
 
 var updateTween = function (dt, tween) {
   var obj = tween.obj;
+
+  if (!obj) {
+    tween.t = tween.duration;
+    tween.onComplete(tween);
+    return;
+  }
 
   for (var prop in tween.end) {
     if (!tween.end.hasOwnProperty(prop)) { continue; }
@@ -193,7 +209,6 @@ var getGiftTransforms = function(conveyorBelt) {
   ]
 };
 
-
 var rollForGiftType = function() {
   return (Math.random() < 0.8) ? GOOD : BAD;
 };
@@ -242,13 +257,26 @@ var createGiftTweens = function(gift, endPos, endRot) {
   startTween(rotTween);
 };
 
-var createFallingTween = function(gift, sack) {
+var createFallingTween = function(gift, sack, direction) {
   var DROP_DURATION = 0.5;
 
-  var startPos = new PIXI.Point(gift.x, gift.y);
-  var endPos = new PIXI.Point(sack.x, sack.y)
+  var directionMultiplier = (direction === LEFT) ? 1 : -1;
 
-  var tween = createTween(gift.position, startPos, endPos, DROP_DURATION, quadIn);
+  var startPos = new PIXI.Point(gift.x, gift.y);
+  var endPos = new PIXI.Point(sack.x + directionMultiplier * 100, sack.y)
+
+  var bezier = new Bezier(
+    startPos.x, startPos.y,
+    endPos.x, startPos.y,
+    //startPos.x + directionMultiplier * 100, startPos.y,
+    // endPos.x - directionMultiplier * 10, endPos.y - 200,
+    endPos.x - directionMultiplier * 10, endPos.y - 200,
+    endPos.x, endPos.y
+  );
+
+  var fallEasing = lutEasing.bind(null, bezier.getLUT(DROP_DURATION * FPS));
+
+  var tween = createTween(gift.position, startPos, endPos, DROP_DURATION, fallEasing);
   startTween(tween);
 };
 
@@ -273,7 +301,7 @@ var feedGifts = function(conveyorBelt, giftContainer, sack) {
   }
 
   if (fallingGift) {
-    createFallingTween(fallingGift, sack);
+    createFallingTween(fallingGift, sack, getConveyorBeltFromDirection(conveyorBelt));
   }
 };
 
@@ -288,7 +316,6 @@ var updateFeedTimer = function(dt, sceneIndex) {
   }
 };
 
-
 var getGiftToGrabFromConveyorBelt = function(conveyorBelt) {
   var gifts = g_conveyorBeltToGifts.get(conveyorBelt);
   if (gifts.length >= MAX_GIFTS_PER_CONVEYOR_BELT) {
@@ -298,17 +325,44 @@ var getGiftToGrabFromConveyorBelt = function(conveyorBelt) {
   return null;
 };
 
-var grabGift = function(gift) {
-  var DURATION = 0.75;
+var grabGift = function(gift, armsContainer) {
+  var DURATION = 0.5;
 
-  var startPos = new PIXI.Point(gift.x, gift.y);
-  var endPos = new PIXI.Point(WIDTH/2, -100);
+  var arms = PIXI.Sprite.fromFrame(ASSET_PATHS.ARMS.OPEN);
+  arms.anchor.set(0.5, 1);
+  arms.scale.set(ASSET_SCALE);
+  armsContainer.addChild(arms);
 
-  var tween = createTween(gift.position, startPos, endPos, DURATION, quadIn, function(tween) {
-    removeGift(gift);
+  var armStartPos = new PIXI.Point(
+    Math.random() * (3/5) * WIDTH + (1/5) * WIDTH,
+    -100
+  );
+
+  var armsGrabPos = new PIXI.Point(gift.x, gift.y);
+
+  var rotation = -Math.atan2(
+    armsGrabPos.x - armStartPos.x,
+    armsGrabPos.y - armStartPos.y
+  );
+
+  arms.rotation = rotation;
+
+  arms.texture = PIXI.utils.TextureCache[ASSET_PATHS.ARMS.OPEN];
+
+  var armGrabTween = createTween(arms.position, armStartPos, armsGrabPos, DURATION, quadIn, function(tween) {
+    arms.texture = PIXI.utils.TextureCache[ASSET_PATHS.ARMS.CLOSED];
+
+    var retractArmsTween = createTween(arms.position, armsGrabPos, armStartPos, DURATION, quadIn);
+    var pullGiftTween = createTween(gift.position, armsGrabPos, armStartPos, DURATION, quadIn, function(tween) {
+      removeGift(gift);
+      armsContainer.removeChild(arms);
+    });
+
+    startTween(retractArmsTween);
+    startTween(pullGiftTween);
   });
 
-  startTween(tween);
+  startTween(armGrabTween);
 };
 
 var processKeyDown = function(dt, event, sceneIndex) {
@@ -321,7 +375,7 @@ var processKeyDown = function(dt, event, sceneIndex) {
   var gifts = g_conveyorBeltToGifts.get(conveyorBelt);
   gifts.splice(gifts.indexOf(giftToGrab), 1);
 
-  grabGift(giftToGrab);
+  grabGift(giftToGrab, sceneIndex.armsContainer);
 };
 
 var processInput = function(dt, sceneIndex) {
@@ -354,7 +408,13 @@ var checkForSackCollision = function(dt, sceneIndex) {
   for (var i = 0; i < gifts.length; i++) {
     var gift = gifts[i];
 
-    if (rectHitTest(gift.getBounds(), sack.getBounds())) {
+    var sackBounds = sack.getBounds();
+    var newHeight = sackBounds.height / 2;
+    var heightChange = sackBounds.height - newHeight;
+    sackBounds.height = newHeight;
+    sackBounds.y += heightChange;
+
+    if (rectHitTest(gift.getBounds(), sackBounds)) {
       removeGift(gift);
       increaseScore(getScoreFromGift(gift));
     }
@@ -538,6 +598,9 @@ var buildSceneGraph = function () {
       sack.scale.set(ASSET_SCALE);
       worldContainer.addChild(sack);
 
+      var armsContainer = new PIXI.Container();
+      worldContainer.addChild(armsContainer);
+
 
   return {
     root: root,
@@ -548,7 +611,8 @@ var buildSceneGraph = function () {
         needle: needle,
         allConveyorBeltsContainer: allConveyorBeltsContainer,
         giftContainer: giftContainer,
-        sack: sack
+        sack: sack,
+        armsContainer: armsContainer
   };
 };
 
