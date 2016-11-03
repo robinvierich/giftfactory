@@ -37,14 +37,14 @@ var ASSET_PATHS = {
 
 var ASSET_SCALE = 0.33;
 
-var LEFT = 0;
-var RIGHT = 1;
+var LEFT = 1;
+var RIGHT = 2;
 
-var GOOD = 0;
-var BAD = 1;
+var GOOD = 1;
+var BAD = 2;
 
-var TOP = 0;
-var BOTTOM = 1;
+var TOP = 1;
+var BOTTOM = 2;
 
 var HEIGHT = 1080;
 var WIDTH = 1920;
@@ -68,7 +68,7 @@ var g_giftToType = new Map();
 var g_eventQueue = [];
 var g_tweens = [];
 
-var g_timeBetweenFeeds = 0.125;
+var g_timeBetweenFeeds = 0.5;
 var g_feedTimer = 0;
 var g_nextConveyorBeltIndex = 0;
 var g_score = 0;
@@ -119,6 +119,25 @@ var createTween = function (obj, start, end, duration, easingFunc, onComplete) {
 
   return tween;
 };
+
+var createTimerTween = function(duration, onComplete) {
+  return createTween({}, {}, null, duration, linear, onComplete);
+};
+
+var removeTweensFromObj = function(obj) {
+  var indicesToRemove = [];
+
+  for (var i = 0; i < g_tweens.length; i++){
+    var tween = g_tweens[i];
+    if (tween.obj === obj) {
+      indicesToRemove.push(i);
+    }
+  }
+
+  for (var i = 0; i < indicesToRemove.length; i++) {
+    g_tweens.splice(indicesToRemove[i], 1);
+  }
+}
 
 var updateTween = function (dt, tween) {
   var obj = tween.obj;
@@ -217,16 +236,23 @@ var rollForGiftType = function() {
   return (Math.random() < 0.8) ? GOOD : BAD;
 };
 
-var addGift = function(giftContainer) {
-  var giftType = rollForGiftType();
+var createRandomGift = function(type) {
+  var giftType = type;
   var giftAssetList = (giftType === GOOD) ? ASSET_PATHS.GIFTS : ASSET_PATHS.BAD_GIFTS;
   var giftAsset = giftAssetList[Math.floor(Math.random() * giftAssetList.length)];
 
   var gift = PIXI.Sprite.fromFrame(giftAsset);
   gift.anchor.set(0.5, 1);
   gift.scale.set(ASSET_SCALE);
-  giftContainer.addChild(gift);
 
+  return gift;
+};
+
+var addGift = function(giftContainer) {
+  var giftType = rollForGiftType();
+  var gift = createRandomGift(giftType);
+
+  giftContainer.addChild(gift);
   g_giftToType.set(gift, giftType);
 
   return gift;
@@ -330,7 +356,7 @@ var getGiftToGrabFromConveyorBelt = function(conveyorBelt) {
 };
 
 var grabGift = function(gift, sceneIndex, topOrBottom) {
-  var DURATION = Math.max(g_feedTimer / 1.5, 0.1);
+  var DURATION = 0.5;
 
   var giftGrabContainer = sceneIndex.giftGrabContainer;
   var armsContainer = sceneIndex.armsContainer;
@@ -359,11 +385,11 @@ var grabGift = function(gift, sceneIndex, topOrBottom) {
 
   arms.texture = PIXI.utils.TextureCache[ASSET_PATHS.ARMS.OPEN];
 
-  var armGrabTween = createTween(arms.position, armStartPos, armsGrabPos, DURATION, quadIn, function(tween) {
+  var armGrabTween = createTween(arms.position, armStartPos, armsGrabPos, (1/2) * DURATION, quadIn, function(tween) {
     arms.texture = PIXI.utils.TextureCache[ASSET_PATHS.ARMS.CLOSED];
 
-    var retractArmsTween = createTween(arms.position, armsGrabPos, armStartPos, DURATION, quadIn);
-    var pullGiftTween = createTween(gift.position, armsGrabPos, armStartPos, DURATION, quadIn, function(tween) {
+    var retractArmsTween = createTween(arms.position, armsGrabPos, armStartPos, (1/2) * DURATION, quadIn);
+    var pullGiftTween = createTween(gift.position, armsGrabPos, armStartPos, (1/2) * DURATION, quadIn, function(tween) {
       removeGift(gift);
       armsContainer.removeChild(arms);
     });
@@ -407,9 +433,77 @@ var rectHitTest = function(rect1, rect2) {
   );
 };
 
+var BAD_GIFT_SCORE_PENALTY = 3;
+
 var getScoreFromGift = function(gift) {
   var giftType = g_giftToType.get(gift);
-  return giftType === GOOD ? 1 : -3
+  return giftType === GOOD ? 1 : -BAD_GIFT_SCORE_PENALTY;
+};
+
+var spitOutGifts = function(count, badGift, sceneIndex) {
+  var GIFT_TWEEN_DURATION = 0.5;
+  var SPIT_DURATION = 0.2;
+
+  removeTweensFromObj(badGift.position);
+  removeTweensFromObj(badGift);
+
+  var sack = sceneIndex.sack;
+  var spitOutContainer = sceneIndex.spitOutContainer;
+
+  spitOutContainer.addChild(badGift);
+
+  sack.texture = PIXI.utils.TextureCache[ASSET_PATHS.SACK.SPIT];
+
+  var startPos = new PIXI.Point(sack.x, sack.y + sack.height);
+  var endPositions = [];
+
+  var gifts = [badGift];
+
+  for (var i = 0; i < count; i++) {
+    var gift = createRandomGift(GOOD);
+    gifts.push(gift);
+    spitOutContainer.addChild(gift);
+  }
+
+  var endPositions = gifts.map(function(gift) {
+    return new PIXI.Point(Math.random() * WIDTH, HEIGHT + gift.height*2);
+  });
+
+  var beziers = endPositions.map(function(endPos) {
+    return new Bezier(
+      startPos.x, startPos.y,
+      startPos.x, startPos.y - 1000,
+      //startPos.x + directionMultiplier * 100, startPos.y,
+      // endPos.x - directionMultiplier * 10, endPos.y - 200,
+      endPos.x, endPos.y - 1000,
+      endPos.x, endPos.y
+    );
+  });
+
+  var easingFns = beziers.map(function(bezier) {
+    return lutEasing.bind(null, bezier.getLUT(GIFT_TWEEN_DURATION * FPS));
+  });
+
+  for (var i = 0; i < gifts.length; i++) {
+    var gift = gifts[i];
+    var tween = createTween(gift.position, startPos, endPositions[i], GIFT_TWEEN_DURATION, easingFns[i]);
+    startTween(tween);
+  }
+
+  var removeGiftsTween = createTimerTween(GIFT_TWEEN_DURATION, function(tween) {
+      for (var i = 0; i < gifts.length; i++) {
+        var gift = gifts[i];
+        removeGift(gift);
+      }
+  });
+
+  startTween(removeGiftsTween);
+
+  var openSackTween = createTimerTween(SPIT_DURATION, function(tween) {
+    sack.texture = PIXI.TextureCache[ASSET_PATHS.SACK.OPEN];
+  });
+
+  startTween(openSackTween);
 };
 
 var checkForSackCollision = function(dt, sceneIndex) {
@@ -426,8 +520,16 @@ var checkForSackCollision = function(dt, sceneIndex) {
     sackBounds.y += heightChange;
 
     if (rectHitTest(gift.getBounds(), sackBounds)) {
+      var giftType = g_giftToType.get(gift);
       removeGift(gift);
-      increaseScore(getScoreFromGift(gift));
+
+      if (giftType === BAD) {
+        var scoreChange = getScoreFromGift(gift)
+        spitOutGifts(Math.abs(scoreChange), gift, sceneIndex);
+        increaseScore(scoreChange);
+      } else {
+        increaseScore(getScoreFromGift(gift));
+      }
     }
   }
 };
@@ -629,6 +731,9 @@ var buildSceneGraph = function () {
       sack.scale.set(ASSET_SCALE);
       worldContainer.addChild(sack);
 
+      var spitOutContainer = new PIXI.Container();
+      worldContainer.addChild(spitOutContainer);
+
       var giftGrabContainer = new PIXI.Container();
       worldContainer.addChild(giftGrabContainer);
 
@@ -648,6 +753,7 @@ var buildSceneGraph = function () {
         sack: sack,
         giftGrabContainer: giftGrabContainer,
         armsContainer: armsContainer,
+        spitOutContainer: spitOutContainer
   };
 };
 
