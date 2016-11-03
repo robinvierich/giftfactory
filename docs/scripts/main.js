@@ -9,6 +9,7 @@ var ASSET_PATHS = {
     4: 'images/conveyor-belt4.png'
   },
   DROP_PLATFORM: 'images/platform.png',
+  SPOTLIGHT: 'images/spotlight.png',
   GIFTS: [
     'images/item-gift1-xmas.png',
     'images/item-gift2-xmas.png'
@@ -200,7 +201,7 @@ var getGiftTransforms = function(conveyorBelt) {
   var x4 = -directionMultiplier * ((2/5) * conveyorBelt.width) * Math.cos(rotation);
   var y4 = -directionMultiplier * ((2/5) * conveyorBelt.width) * Math.sin(rotation) - conveyorBelt.height / 2;
 
-  var x5 = -30 * directionMultiplier;
+  var x5 = -10 * directionMultiplier;
   var y5 = -dropConveyorBelt.height / 2;
 
   return [
@@ -329,7 +330,7 @@ var getGiftToGrabFromConveyorBelt = function(conveyorBelt) {
 };
 
 var grabGift = function(gift, sceneIndex, topOrBottom) {
-  var DURATION = 0.5;
+  var DURATION = Math.max(g_feedTimer / 1.5, 0.1);
 
   var giftGrabContainer = sceneIndex.giftGrabContainer;
   var armsContainer = sceneIndex.armsContainer;
@@ -590,6 +591,22 @@ var buildSceneGraph = function () {
         },
       ];
 
+      var spotlightContainer = new PIXI.Container();
+
+      worldContainer.addChild(spotlightContainer);
+
+      CONVEYOR_BELT_DATA.forEach(function (conveyorBeltDatum) {
+        var dropConveyorBeltDatum = conveyorBeltDatum.dropConveyorBeltDatum;
+        var spotlight = PIXI.Sprite.fromFrame(ASSET_PATHS.SPOTLIGHT);
+        spotlight.anchor.set(0.5);
+        spotlight.scale.set(ASSET_SCALE);
+        spotlight.position.set(
+          dropConveyorBeltDatum.position.x,
+          dropConveyorBeltDatum.position.y - spotlight.height / 2
+        );
+        spotlightContainer.addChild(spotlight);
+      });
+
       CONVEYOR_BELT_DATA.forEach(function (conveyorBeltDatum) {
         var conveyorBeltContainer = new PIXI.Container();
         var conveyorBelt = addConveyorBelt(conveyorBeltDatum);
@@ -600,6 +617,7 @@ var buildSceneGraph = function () {
       });
 
       allConveyorBeltsContainer.position.set(allConveyorBeltsContainer.children[0].width / 2);
+      spotlightContainer.position.set(allConveyorBeltsContainer.x, allConveyorBeltsContainer.y);
 
       var giftContainer = new PIXI.Container();
       worldContainer.addChild(giftContainer);
