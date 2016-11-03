@@ -1,18 +1,35 @@
+var DEBUG_CONVEYOR_BELT_NUMBERS = true;
 
 var ASSET_PATHS = {
-  BG: 'images/bg.jpg',
+  BG: 'images/bg-1px.png',
   CONVEYOR_BELTS: {
-    1: 'images/conveyorbelt1.png',
-    2: 'images/conveyorbelt2.png',
-    3: 'images/conveyorbelt3.png',
-    4: 'images/conveyorbelt4.png'
+    1: 'images/conveyor-belt1.png',
+    2: 'images/conveyor-belt2.png',
+    3: 'images/conveyor-belt3.png',
+    4: 'images/conveyor-belt4.png'
   },
-  GIFTS: ['images/gift.png'],
-  BAD_GIFTS: ['images/elfboy.jpg'],
-  SACK: 'images/sac.jpg',
-  SCALE: 'images/scale.png',
-  NEEDLE: 'images/needle.png'
+  DROP_PLATFORM: 'images/platform.png',
+  GIFTS: [
+    'images/item-gift1-xmas.png',
+    'images/item-gift2-xmas.png'
+  ],
+  BAD_GIFTS: [
+    'images/item-heart.png',
+    'images/item-pot-of-gold.png',
+    'images/item-pumpkin.png',
+    'images/item-sock-xmas.png',
+    'images/item-turkey.png'
+  ],
+  SACK: {
+    OPEN: 'images/bag-open.png',
+    CLOSED: 'images/bag-closed.png',
+    SPIT: 'images/bag-spit.png',
+  },
+  SCALE: 'images/scale-pole.png',
+  NEEDLE: 'images/scale-arrow.png'
 };
+
+var ASSET_SCALE = 0.33;
 
 var LEFT = 0;
 var RIGHT = 1;
@@ -30,8 +47,8 @@ var eventQueue = [];
 
 var TIME_BETWEEN_FEEDS = 0.25;
 
-var NEEDLE_ROT_MIN = -Math.PI / 4;
-var NEEDLE_ROT_MAX = Math.PI / 4;
+var NEEDLE_ROT_MIN = -Math.PI / 2;
+var NEEDLE_ROT_MAX = Math.PI / 2;
 var MAX_SCORE = 100;
 
 var MAX_GIFTS_PER_CONVEYOR_BELT = 4;
@@ -58,10 +75,10 @@ var expoInOut = function(t, start, end) {
 
   var t2 = t * 2;
 
-  if (t2 < 1) { 
+  if (t2 < 1) {
     return ((end - start) / 2) * (Math.pow(2, 10 * (t2 - 1)) + start);
   } else {
-    return ((end - start) / 2) * (-Math.pow(2, -10 * (t2 - 1)) + 2) + start; 
+    return ((end - start) / 2) * (-Math.pow(2, -10 * (t2 - 1)) + 2) + start;
   }
 };
 
@@ -107,7 +124,7 @@ var updateTween = function (dt, tween) {
   if (tween.t >= tween.duration && tween.onComplete) {
     tween.onComplete(tween);
   }
-  
+
   tween.t = Math.min(tween.t + dt, tween.duration);
 };
 
@@ -150,27 +167,29 @@ var getGiftTransforms = function(conveyorBelt) {
 
   var rotation = conveyorBelt.rotation;
 
-  var distanceAlongBelt = conveyorBelt.width / 3;
-
   var directionMultiplier = getConveyorBeltFromDirection(conveyorBelt) === LEFT ? -1 : 1;
 
-  var x1 = directionMultiplier * distanceAlongBelt * Math.cos(rotation);
-  var y1 = directionMultiplier * distanceAlongBelt * Math.sin(rotation) - conveyorBelt.height / 2;
+  var x1 = directionMultiplier * ((1/5) * conveyorBelt.width) * Math.cos(rotation);
+  var y1 = directionMultiplier * ((1/5) * conveyorBelt.width) * Math.sin(rotation) - conveyorBelt.height / 2;
 
   var x2 = 0;
   var y2 = -conveyorBelt.height / 2;
 
-  var x3 = -directionMultiplier * distanceAlongBelt * Math.cos(rotation);
-  var y3 = -directionMultiplier * distanceAlongBelt * Math.sin(rotation) - conveyorBelt.height / 2;
+  var x3 = -directionMultiplier * ((1/5) * conveyorBelt.width) * Math.cos(rotation);
+  var y3 = -directionMultiplier * ((1/5) * conveyorBelt.width) * Math.sin(rotation) - conveyorBelt.height / 2;
 
-  var x4 = -30 * directionMultiplier;
-  var y4 = -dropConveyorBelt.height / 2;
+  var x4 = -directionMultiplier * ((2/5) * conveyorBelt.width) * Math.cos(rotation);
+  var y4 = -directionMultiplier * ((2/5) * conveyorBelt.width) * Math.sin(rotation) - conveyorBelt.height / 2;
+
+  var x5 = -30 * directionMultiplier;
+  var y5 = -dropConveyorBelt.height / 2;
 
   return [
     {position: new PIXI.Point(conveyorBeltGlobalPos.x + x1, conveyorBeltGlobalPos.y + y1), rotation: conveyorBelt.rotation},
     {position: new PIXI.Point(conveyorBeltGlobalPos.x + x2, conveyorBeltGlobalPos.y + y2), rotation: conveyorBelt.rotation},
     {position: new PIXI.Point(conveyorBeltGlobalPos.x + x3, conveyorBeltGlobalPos.y + y3), rotation: conveyorBelt.rotation},
-    {position: new PIXI.Point(dropConveyorBeltGlobalPos.x + x4, dropConveyorBeltGlobalPos.y + y4), rotation: 0},
+    {position: new PIXI.Point(conveyorBeltGlobalPos.x + x4, conveyorBeltGlobalPos.y + y4), rotation: conveyorBelt.rotation},
+    {position: new PIXI.Point(dropConveyorBeltGlobalPos.x + x5, dropConveyorBeltGlobalPos.y + y5), rotation: 0},
   ]
 };
 
@@ -186,7 +205,7 @@ var addGift = function(giftContainer) {
 
   var gift = PIXI.Sprite.fromFrame(giftAsset);
   gift.anchor.set(0.5, 1);
-  gift.scale.set(0.75);
+  gift.scale.set(ASSET_SCALE);
   giftContainer.addChild(gift);
 
   g_giftToType.set(gift, giftType);
@@ -377,18 +396,33 @@ var startGame = function (renderer, sceneIndex) {
 var addConveyorBelt = function(conveyorBeltDatum) {
   var conveyorBelt = PIXI.Sprite.fromFrame(conveyorBeltDatum.assetPath);
 
+  var fromDirection = conveyorBeltDatum.fromDirection;
+  g_conveyorBeltFromDirections.set(conveyorBelt, fromDirection);
+
+  var directionMultiplier = (fromDirection === LEFT) ? 1 : -1;
+
   conveyorBelt.position.set(conveyorBeltDatum.position.x, conveyorBeltDatum.position.y);
   conveyorBelt.anchor.set(conveyorBeltDatum.anchor.x, conveyorBeltDatum.anchor.y);
-  conveyorBelt.scale.set(conveyorBeltDatum.scale.x, conveyorBeltDatum.scale.y);
+  conveyorBelt.scale.set(directionMultiplier * conveyorBeltDatum.scale.x, conveyorBeltDatum.scale.y);
   conveyorBelt.rotation = conveyorBeltDatum.rotation;
 
   g_conveyorBeltToGifts.set(conveyorBelt, []);
 
-  var fromDirection = conveyorBeltDatum.fromDirection;
-  g_conveyorBeltFromDirections.set(conveyorBelt, fromDirection);
-
   if (conveyorBeltDatum.key) {
-    g_keyToConveyorBelt.set(conveyorBeltDatum.key, conveyorBelt); 
+    g_keyToConveyorBelt.set(conveyorBeltDatum.key, conveyorBelt);
+
+    if (DEBUG_CONVEYOR_BELT_NUMBERS) {
+      var numberText = new PIXI.Text(conveyorBeltDatum.key.toString(), {
+        fontFamily: 'Arial', fontSize: 256, fill: 0x220000, align: 'left'
+      });
+
+      numberText.x = conveyorBelt.width
+      numberText.y = conveyorBelt.height
+
+      numberText.scale.x = directionMultiplier;
+
+      conveyorBelt.addChild(numberText);
+    }
   }
 
   return conveyorBelt;
@@ -398,67 +432,86 @@ var buildSceneGraph = function () {
 
   var root = new PIXI.Container();
 
+  // root.scale.set(0.5);
+
     var worldContainer = new PIXI.Container();
     root.addChild(worldContainer);
 
-      var bg = PIXI.Sprite.fromFrame(ASSET_PATHS.BG);
+      var bg = PIXI.extras.TilingSprite.fromFrame(ASSET_PATHS.BG);
+      bg.height = HEIGHT;
+      bg.width = WIDTH;
       worldContainer.addChild(bg);
 
       var scaleContainer = new PIXI.Container();
-      scaleContainer.scale.set(0.25);
+      //scaleContainer.scale.set(0.25);
       scaleContainer.position.set(WIDTH/2, 100);
       worldContainer.addChild(scaleContainer);
         var scale = PIXI.Sprite.fromFrame(ASSET_PATHS.SCALE);
-        scale.anchor.set(0.5, 0.5)
+        scale.anchor.set(0.5, 1);
+        scale.y = HEIGHT;
+        scale.scale.set(ASSET_SCALE);
         scaleContainer.addChild(scale);
 
         var needle = PIXI.Sprite.fromFrame(ASSET_PATHS.NEEDLE);
         needle.anchor.set(0.5, 1);
-        needle.position.set(scale.x, -110);
-        needle.pivot.y = 93;
+        needle.position.set(scale.x - 5, 235);
+        needle.scale.set(ASSET_SCALE);
+        needle.pivot.y = -100;
         needle.rotation = -Math.PI / 4;
         scaleContainer.addChild(needle);
 
       var allConveyorBeltsContainer = new PIXI.Container();
       worldContainer.addChild(allConveyorBeltsContainer);
 
+      var CONVEYOR_BELT_ROTATION = Math.PI / 12;
+
+      var CONVEYOR_BELT_TOP_Y = -200;
+      var DROP_CONVEYOR_BELT_TOP_Y = CONVEYOR_BELT_TOP_Y + 180;
+      var CONVEYOR_BELT_BOTTOM_Y = 50;
+      var DROP_CONVEYOR_BELT_BOTTOM_Y = CONVEYOR_BELT_BOTTOM_Y + 180;
+
+      var CONVEYOR_BELT_LEFT_X = -400;
+      var DROP_CONVEYOR_BELT_LEFT_X = CONVEYOR_BELT_LEFT_X + 600;
+      var CONVEYOR_BELT_RIGHT_X = 1300;
+      var DROP_CONVEYOR_BELT_RIGHT_X = CONVEYOR_BELT_RIGHT_X - 600;
+
       var CONVEYOR_BELT_DATA = [
-        { 
-          position: { x: 0, y: 0 }, assetPath: ASSET_PATHS.CONVEYOR_BELTS[1], rotation: Math.PI / 8, anchor: {x: 0.5, y: 0.5}, scale: {x: 2, y: 1}, 
+        {
+          position: { x: CONVEYOR_BELT_LEFT_X, y: CONVEYOR_BELT_TOP_Y }, assetPath: ASSET_PATHS.CONVEYOR_BELTS[1], rotation: CONVEYOR_BELT_ROTATION, anchor: {x: 0.5, y: 0.5}, scale: {x: ASSET_SCALE, y: ASSET_SCALE},
           fromDirection: LEFT,
           key: '1',
-          dropConveyorBeltDatum: { 
-            position: { x: 400, y: 120 }, assetPath: ASSET_PATHS.CONVEYOR_BELTS[1], rotation: 0, anchor: {x: 0.5, y: 0.5}, scale: {x: 0.75, y: 1},
+          dropConveyorBeltDatum: {
+            position: { x: DROP_CONVEYOR_BELT_LEFT_X, y: DROP_CONVEYOR_BELT_TOP_Y }, assetPath: ASSET_PATHS.DROP_PLATFORM, rotation: 0, anchor: {x: 0.5, y: 0.5}, scale: {x: ASSET_SCALE, y: ASSET_SCALE},
             fromDirection: LEFT,
           }
         },
 
-        { 
-          position: { x: 0, y: 300 }, assetPath: ASSET_PATHS.CONVEYOR_BELTS[2], rotation: Math.PI / 8, anchor: {x: 0.5, y: 0.5}, scale: {x: 2, y: 1},
+        {
+          position: { x: CONVEYOR_BELT_LEFT_X, y: CONVEYOR_BELT_BOTTOM_Y }, assetPath: ASSET_PATHS.CONVEYOR_BELTS[2], rotation: CONVEYOR_BELT_ROTATION, anchor: {x: 0.5, y: 0.5}, scale: {x: ASSET_SCALE, y: ASSET_SCALE},
           fromDirection: LEFT,
           key: '2',
-          dropConveyorBeltDatum: { 
-            position: { x: 400, y: 420 }, assetPath: ASSET_PATHS.CONVEYOR_BELTS[2], rotation: 0, anchor: {x: 0.5, y: 0.5}, scale: {x: 0.75, y: 1},
-            fromDirection: LEFT,
-          } 
-        },
-
-        { 
-          position: { x: 1282, y: 0 }, assetPath: ASSET_PATHS.CONVEYOR_BELTS[3], rotation: -Math.PI / 8, anchor: {x: 0.5, y: 0.5}, scale: {x: 2, y: 1},
-          fromDirection: RIGHT,
-          key: '3',
-          dropConveyorBeltDatum: { 
-            position: { x: 882, y: 120 }, assetPath: ASSET_PATHS.CONVEYOR_BELTS[3], rotation: 0, anchor: {x: 0.5, y: 0.5}, scale: {x: 0.75, y: 1},
+          dropConveyorBeltDatum: {
+            position: { x: DROP_CONVEYOR_BELT_LEFT_X, y: DROP_CONVEYOR_BELT_BOTTOM_Y }, assetPath: ASSET_PATHS.DROP_PLATFORM, rotation: 0, anchor: {x: 0.5, y: 0.5}, scale: {x: ASSET_SCALE, y: ASSET_SCALE},
             fromDirection: LEFT,
           }
         },
 
-        { 
-          position: { x: 1282, y: 300 }, assetPath: ASSET_PATHS.CONVEYOR_BELTS[4], rotation: -Math.PI / 8, anchor: {x: 0.5, y: 0.5}, scale: {x: 2, y: 1},
+        {
+          position: { x: CONVEYOR_BELT_RIGHT_X, y: CONVEYOR_BELT_TOP_Y }, assetPath: ASSET_PATHS.CONVEYOR_BELTS[3], rotation: -CONVEYOR_BELT_ROTATION, anchor: {x: 0.5, y: 0.5}, scale: {x: ASSET_SCALE, y: ASSET_SCALE},
+          fromDirection: RIGHT,
+          key: '3',
+          dropConveyorBeltDatum: {
+            position: { x: DROP_CONVEYOR_BELT_RIGHT_X, y: DROP_CONVEYOR_BELT_TOP_Y }, assetPath: ASSET_PATHS.DROP_PLATFORM, rotation: 0, anchor: {x: 0.5, y: 0.5}, scale: {x: ASSET_SCALE, y: ASSET_SCALE},
+            fromDirection: LEFT,
+          }
+        },
+
+        {
+          position: { x: CONVEYOR_BELT_RIGHT_X, y: CONVEYOR_BELT_BOTTOM_Y }, assetPath: ASSET_PATHS.CONVEYOR_BELTS[4], rotation: -CONVEYOR_BELT_ROTATION, anchor: {x: 0.5, y: 0.5}, scale: {x: ASSET_SCALE, y: ASSET_SCALE},
           fromDirection: RIGHT,
           key: '4',
-          dropConveyorBeltDatum: { 
-            position: { x: 882, y: 420 }, assetPath: ASSET_PATHS.CONVEYOR_BELTS[4], rotation: 0, anchor: {x: 0.5, y: 0.5}, scale: {x: 0.75, y: 1},
+          dropConveyorBeltDatum: {
+            position: { x: DROP_CONVEYOR_BELT_RIGHT_X, y: DROP_CONVEYOR_BELT_BOTTOM_Y }, assetPath: ASSET_PATHS.DROP_PLATFORM, rotation: 0, anchor: {x: 0.5, y: 0.5}, scale: {x: ASSET_SCALE, y: ASSET_SCALE},
             fromDirection: LEFT,
           }
         },
@@ -478,12 +531,13 @@ var buildSceneGraph = function () {
       var giftContainer = new PIXI.Container();
       worldContainer.addChild(giftContainer);
 
-      var sack = PIXI.Sprite.fromFrame(ASSET_PATHS.SACK);
+      var sack = PIXI.Sprite.fromFrame(ASSET_PATHS.SACK.OPEN);
       sack.anchor.set(0.5, 1);
       sack.x = WIDTH / 2;
       sack.y = HEIGHT;
+      sack.scale.set(ASSET_SCALE);
       worldContainer.addChild(sack);
-        
+
 
   return {
     root: root,
