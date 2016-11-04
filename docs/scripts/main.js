@@ -512,7 +512,7 @@ var spitOutGifts = function(count, badGift, sceneIndex) {
   startTween(removeGiftsTween);
 
   var openSackTween = createTimerTween(SPIT_DURATION, function(tween) {
-    sack.texture = PIXI.TextureCache[ASSET_PATHS.SACK.OPEN];
+    sack.texture = PIXI.utils.TextureCache[ASSET_PATHS.SACK.OPEN];
   });
 
   startTween(openSackTween);
