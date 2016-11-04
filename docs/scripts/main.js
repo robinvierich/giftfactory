@@ -68,6 +68,8 @@ var g_giftToType = new Map();
 var g_eventQueue = [];
 var g_tweens = [];
 
+var g_feedPaused = false;
+
 var g_timeBetweenFeeds = 0.5;
 var g_feedTimer = 0;
 var g_nextConveyorBeltIndex = 0;
@@ -337,6 +339,8 @@ var feedGifts = function(conveyorBelt, giftContainer, sack) {
 
 
 var updateFeedTimer = function(dt, sceneIndex) {
+  if (g_feedPaused) { return; }
+
   g_feedTimer += dt;
   if (g_feedTimer >= g_timeBetweenFeeds) {
     var conveyorBelt = sceneIndex.allConveyorBeltsContainer.children[g_nextConveyorBeltIndex];
@@ -441,8 +445,10 @@ var getScoreFromGift = function(gift) {
 };
 
 var spitOutGifts = function(count, badGift, sceneIndex) {
-  var GIFT_TWEEN_DURATION = 0.5;
+  var GIFT_TWEEN_DURATION = 0.8;
   var SPIT_DURATION = 0.2;
+
+  g_feedPaused = true;
 
   removeTweensFromObj(badGift.position);
   removeTweensFromObj(badGift);
@@ -466,7 +472,11 @@ var spitOutGifts = function(count, badGift, sceneIndex) {
   }
 
   var endPositions = gifts.map(function(gift) {
-    return new PIXI.Point(Math.random() * WIDTH, HEIGHT + gift.height*2);
+    var xSign = (Math.random() < 0.5) ? -1 : 1;
+    var range = (WIDTH - sack.width) / 2;
+    var x = WIDTH / 2 + (xSign * (sack.width / 2 + Math.random() * range + gift.width / 2));
+
+    return new PIXI.Point(x, HEIGHT + gift.height*2);
   });
 
   var beziers = endPositions.map(function(endPos) {
@@ -495,6 +505,8 @@ var spitOutGifts = function(count, badGift, sceneIndex) {
         var gift = gifts[i];
         removeGift(gift);
       }
+
+      g_feedPaused = false;
   });
 
   startTween(removeGiftsTween);
