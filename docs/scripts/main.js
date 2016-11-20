@@ -77,10 +77,20 @@ var g_nextConveyorBeltIndex = 0;
 var g_score = 0;
 
 var g_roundStartTime = null;
+var g_roundEndTime = null;
 
 // {name: 'name', score: 0}
 var g_bestTimes = [];
+var g_playerBestTimeEntry = null;
 var NUM_BEST_TIMES_TO_STORE = 10;
+
+var STATES = {
+  STARTING: 'STARTING',
+  PLAYING: 'PLAYING',
+  FINISHED: 'FINISHED'
+};
+
+var g_state = STATES.STARTING;
 
 var bestTimeSortFn = function(bestTimeEntryA, bestTimeEntryB) {
   return bestTimeEntryA.time - bestTimeEntryB.time;
@@ -316,6 +326,10 @@ var removeGift = function(gift) {
   gift.parent.removeChild(gift);
 };
 
+var clearGifts = function(giftContainer) {
+  giftContainer.removeChildren();
+}
+
 var startTween = function(tween) {
   var onComplete = tween.onComplete;
 
@@ -457,7 +471,34 @@ var grabGift = function(gift, sceneIndex, topOrBottom) {
   startTween(armGrabTween);
 };
 
+var isInState = function(state) {
+  return g_state == state;
+}
+
+var transitionToState = function(newState, sceneIndex) {
+  if (STATE_TRANSITIONS[g_state] && STATE_TRANSITIONS[g_state].exit) {
+    STATE_TRANSITIONS[g_state].exit(sceneIndex);
+  }
+
+  g_state = newState;
+
+  if (STATE_TRANSITIONS[newState] && STATE_TRANSITIONS[newState].enter) {
+    STATE_TRANSITIONS[newState].enter(sceneIndex);
+  }
+}
+
+
 var processKeyDown = function(dt, event, sceneIndex) {
+  if (isInState(STATES.STARTING)) {
+    transitionToState(STATES.PLAYING, sceneIndex);
+    return;
+  }
+
+  if (isInState(STATES.FINISHED)) {
+    transitionToState(STATES.STARTING, sceneIndex);
+    return;
+  }
+
   var conveyorBelt = g_keyToConveyorBelt.get(event.key);
   if (!conveyorBelt) { return; }
 
@@ -628,6 +669,8 @@ var updateStopwatch = function(sceneIndex, roundStartTime) {
   var currRoundTime = Date.now() - roundStartTime;
   sceneIndex.stopwatchText.text = getStopwatchText(currRoundTime);
   sceneIndex.stopwatchContainer.x = (WIDTH / 2 - sceneIndex.scaleContainer.width / 2) + (sceneIndex.scaleContainer.width - sceneIndex.stopwatchContainer.width) / 2;
+
+  sceneIndex.stopwatchContainer.visible = isInState(STATES.PLAYING);
 };
 
 var updateGameSpeed = function(score) {
@@ -637,21 +680,30 @@ var updateGameSpeed = function(score) {
   g_timeBetweenFeeds = timeBetweenFeeds;
 };
 
+
+var updateStartScreen = function(dt, sceneIndex) {
+  // probably some text animation??
+};
+
+var updateResultsScreen = function(dt, sceneIndex, bestTimes, roundTime, playerBestTimeEntry) {
+  var winMsg = "You Win! You filled Santa's gift bag in " + Math.round(roundTime / 10) / 100 + ' seconds.\n';
+
+  if (playerBestTimeEntry) {
+    winMsg += 'You made it to number ' + (bestTimes.indexOf(playerBestTimeEntry) + 1) + ' on the leaderboard! Great job!'
+  }
+
+  sceneIndex.resultsText.text = winMsg;
+}
+
 var askForPlayerName = function() {
   return window.prompt('What is your name?', 'Top Elf');
 }
 
-var showFinishScreen = function(bestTimes, playerBestTimeEntry, roundTime) {
-  var winMsg = "You Win! You filled Santa's gift sack in " + Math.round(roundTime / 10) / 100 + ' seconds.';
-
-  if (playerBestTimeEntry) {
-    winMsg += ' You made it to number ' + (bestTimes.indexOf(playerBestTimeEntry) + 1) + ' on the leaderboard! Great job!'
-  }
-
-  alert(winMsg);
+var showFinishScreen = function(sceneIndex, bestTimes, roundTime, playerBestTimeEntry) {
+  
 };
 
-var finishGame = function(bestTimes, roundTime) {
+var finishGame = function(sceneIndex, bestTimes, roundTime) {
   var playerBestTimeEntry = null;
 
   if (isNewBestTime(bestTimes, roundTime)) {
@@ -660,7 +712,7 @@ var finishGame = function(bestTimes, roundTime) {
     saveBestTimes(bestTimes);
   }
   
-  showFinishScreen(bestTimes, playerBestTimeEntry, roundTime);
+  return playerBestTimeEntry;
 }
 
 var checkForWin = function() {
@@ -669,14 +721,27 @@ var checkForWin = function() {
 
 var g_boundRunFn = null;
 
-var update = function (dt, sceneIndex) {
+var update_STARTING = function(dt, sceneIndex) {
+  processInput(dt, sceneIndex);
+
+  updateStartScreen(dt, sceneIndex);
+}
+
+var update_FINISHED = function(dt, sceneIndex) {
+  var roundTime = g_roundEndTime - g_roundStartTime;
+
+  processInput(dt, sceneIndex);
+
+  updateResultsScreen(dt, sceneIndex, g_bestTimes, roundTime, g_playerBestTimeEntry);
+};
+
+var update_PLAYING = function(dt, sceneIndex) {
   if (checkForWin()) {
-    var roundTime = Date.now() - g_roundStartTime;
-    PIXI.ticker.shared.remove(g_boundRunFn);
-    finishGame(g_bestTimes, roundTime);
+    transitionToState(STATES.FINISHED, sceneIndex);
   }
 
   processInput(dt, sceneIndex);
+  
   updateGameSpeed(g_score);
   updateFeedTimer(dt, sceneIndex);
   for (var i = 0; i < g_tweens.length; i++) {
@@ -687,6 +752,20 @@ var update = function (dt, sceneIndex) {
 
   updateStopwatch(sceneIndex, g_roundStartTime)
   checkForSackCollision(dt, sceneIndex);
+}
+
+var update = function (dt, sceneIndex) {
+  if (isInState(STATES.STARTING)) { 
+    return update_STARTING(dt, sceneIndex);
+  }
+
+  if (isInState(STATES.PLAYING)) {
+    return update_PLAYING(dt, sceneIndex);
+  }
+
+  if (isInState(STATES.FINISHED)) { 
+    return update_FINISHED(dt, sceneIndex);
+  }
 };
 
 var run = function (renderer, sceneIndex) {
@@ -697,9 +776,16 @@ var run = function (renderer, sceneIndex) {
 var startGame = function (renderer, sceneIndex) {
   g_boundRunFn = run.bind(null, renderer, sceneIndex);
   g_bestTimes = loadBestTimes();
-  g_roundStartTime = Date.now();
   PIXI.ticker.shared.add(g_boundRunFn);
 };
+
+var startRound = function(sceneIndex) {
+  g_roundEndTime = null;
+  g_roundStartTime = Date.now();
+  g_score = 0;
+  g_playerBestTimeEntry = null;
+  clearGifts(sceneIndex.giftContainer);
+}
 
 var addConveyorBelt = function(conveyorBeltDatum) {
   var conveyorBelt = PIXI.Sprite.fromFrame(conveyorBeltDatum.assetPath);
@@ -867,10 +953,11 @@ var buildSceneGraph = function () {
       worldContainer.addChild(sack);
 
       var stopwatchContainer = new PIXI.Container();
+      stopwatchContainer.visible = false;
       worldContainer.addChild(stopwatchContainer);
 
         var stopwatchText = new PIXI.Text(getStopwatchText(0), {
-          fontFamily: 'courier', fontSize: 60, fill: 0x220000, align: 'left'
+          fontFamily: 'courier', fontSize: 60, fill: 0x220000
         });
         stopwatchContainer.addChild(stopwatchText);
 
@@ -887,6 +974,23 @@ var buildSceneGraph = function () {
       var armsContainer = new PIXI.Container();
       worldContainer.addChild(armsContainer);
 
+      var startScreen = new PIXI.Container();
+      worldContainer.addChild(startScreen);
+
+        var startText = new PIXI.Text('PRESS ANY KEY TO START!', {
+          fontFamily: 'Arial', fontSize: 128, fill: 0x220000
+        })
+        startScreen.addChild(startText);
+
+      var resultsScreen = new PIXI.Container();
+      resultsScreen.visible = false;
+      worldContainer.addChild(resultsScreen);
+
+        var resultsText = new PIXI.Text('RESULTS GO HERE!', {
+          fontFamily: 'Arial', fontSize: 72, fill: 0x220000
+        })
+        resultsScreen.addChild(resultsText);
+
 
   return {
     root: root,
@@ -902,7 +1006,10 @@ var buildSceneGraph = function () {
         stopwatchText: stopwatchText,
         giftGrabContainer: giftGrabContainer,
         armsContainer: armsContainer,
-        spitOutContainer: spitOutContainer
+        spitOutContainer: spitOutContainer,
+        startScreen: startScreen,
+        resultsScreen: resultsScreen,
+        resultsText: resultsText
   };
 };
 
@@ -969,3 +1076,35 @@ var init = function () {
     window.console.error(e);
   })
 };
+
+var STATE_TRANSITIONS = {
+  STARTING: {
+    enter: function(sceneIndex) {
+      sceneIndex.startScreen.visible = true;
+    },
+    exit: function(sceneIndex) {
+      sceneIndex.startScreen.visible = false;
+    }
+  },
+
+  PLAYING: {
+    enter: function(sceneIndex) {
+      startRound(sceneIndex);
+    }
+  },
+
+  FINISHED: {
+    enter: function(sceneIndex) {
+      sceneIndex.resultsScreen.visible = true;
+
+      g_roundEndTime = Date.now()
+
+      var roundTime = g_roundEndTime - g_roundStartTime;
+      g_playerBestTimeEntry = finishGame(sceneIndex, g_bestTimes, roundTime);
+    },
+
+    exit: function(sceneIndex) {
+      sceneIndex.resultsScreen.visible = false;
+    }
+  }  
+}
