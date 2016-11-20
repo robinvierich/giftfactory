@@ -18,7 +18,6 @@ var ASSET_PATHS = {
     'images/item-heart.png',
     'images/item-pot-of-gold.png',
     'images/item-pumpkin.png',
-    'images/item-sock-xmas.png',
     'images/item-turkey.png'
   ],
   SACK: {
@@ -53,9 +52,10 @@ var FPS = 60;
 
 var NEEDLE_ROT_MIN = -Math.PI / 2;
 var NEEDLE_ROT_MAX = Math.PI / 2;
-var MAX_SCORE = 100;
+var MAX_SCORE = 20;
 
 var MAX_GIFTS_PER_CONVEYOR_BELT = 5;
+var BAD_GIFT_CHANCE = 0.4;
 
 var g_conveyorBeltToGifts = new Map();
 var g_conveyorBeltToData = new Map();
@@ -103,6 +103,7 @@ var createBestTime = function(roundTime, playerName) {
 // assumes bestTimes is sorted from min -> max round time
 // if tie with the bottom of leaderboard, returns true
 var isNewBestTime = function(bestTimes, currRoundTime) {
+  if (bestTimes.length <= 0) { return true; }
   return bestTimes[bestTimes.length - 1].time >= currRoundTime;
 };
 
@@ -283,7 +284,7 @@ var getGiftTransforms = function(conveyorBelt) {
 };
 
 var rollForGiftType = function() {
-  return (Math.random() < 0.8) ? GOOD : BAD;
+  return (Math.random() < BAD_GIFT_CHANCE) ? BAD : GOOD;
 };
 
 var createRandomGift = function(type) {
@@ -602,7 +603,7 @@ var showFinishScreen = function(bestTimes, playerBestTimeEntry, roundTime) {
   var winMsg = "You Win! You filled Santa's gift sack in " + Math.round(roundTime / 10) / 100 + ' seconds.';
 
   if (playerBestTimeEntry) {
-    winMsg += 'You made it to number' + (bestTimes.indexOf(playerBestTimeEntry) + 1) + ' on the leaderboard! Great job!'
+    winMsg += ' You made it to number ' + (bestTimes.indexOf(playerBestTimeEntry) + 1) + ' on the leaderboard! Great job!'
   }
 
   alert(winMsg);
@@ -611,9 +612,10 @@ var showFinishScreen = function(bestTimes, playerBestTimeEntry, roundTime) {
 var finishGame = function(bestTimes, roundTime) {
   var playerBestTimeEntry = null;
 
-  if (isNewBestTime(roundTime)) {
+  if (isNewBestTime(bestTimes, roundTime)) {
     var playerName = askForPlayerName();
     var playerBestTimeEntry = updateBestTimes(bestTimes, roundTime, playerName);
+    saveBestTimes(bestTimes);
   }
   
   showFinishScreen(bestTimes, playerBestTimeEntry, roundTime);
