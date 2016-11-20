@@ -71,7 +71,16 @@ var g_feedPaused = false;
 var SLOWEST_TIME_BETWEEN_FEEDS = 0.5;
 var FASTEST_TIME_BETWEEN_FEEDS = 0.2;
 
-var g_timeBetweenFeeds = 0.5;
+var TIME_BETWEEN_FEED_OPTIONS = [
+  0.5,
+  0.4,
+  0.3,
+  0.2,
+  0.1
+];
+
+var g_selectedTimeBetweenFeedIndex = 0;
+
 var g_feedTimer = 0;
 var g_nextConveyorBeltIndex = 0;
 var g_score = 0;
@@ -250,6 +259,12 @@ var getConveyorBeltFromDirection = function(conveyorBelt) {
   return g_conveyorBeltToData.get(conveyorBelt).fromDirection;
 };
 
+
+var getTimeBetweenFeeds = function() {
+  return TIME_BETWEEN_FEED_OPTIONS[g_selectedTimeBetweenFeedIndex];
+};
+
+
 var getGiftStartPosition = function(gift, conveyorBelt) {
   var fromDirection = getConveyorBeltFromDirection(conveyorBelt);
 
@@ -344,7 +359,7 @@ var startTween = function(tween) {
 };
 
 var createGiftTweens = function(gift, endPos, endRot) {
-  var DURATION = g_timeBetweenFeeds / 3;
+  var DURATION = getTimeBetweenFeeds() / 3;
 
   var startPos = new PIXI.Point(gift.x, gift.y);
 
@@ -408,7 +423,7 @@ var updateFeedTimer = function(dt, sceneIndex) {
   if (g_feedPaused) { return; }
 
   g_feedTimer += dt;
-  if (g_feedTimer >= g_timeBetweenFeeds) {
+  if (g_feedTimer >= getTimeBetweenFeeds()) {
     var conveyorBelt = sceneIndex.allConveyorBeltsContainer.children[g_nextConveyorBeltIndex];
     feedGifts(conveyorBelt, sceneIndex.giftContainer, sceneIndex.sack);
     g_nextConveyorBeltIndex = (g_nextConveyorBeltIndex + 2) % sceneIndex.allConveyorBeltsContainer.children.length;
@@ -471,6 +486,14 @@ var grabGift = function(gift, sceneIndex, topOrBottom) {
   startTween(armGrabTween);
 };
 
+var increaseFeedSpeed = function() {
+  g_selectedTimeBetweenFeedIndex = Math.min(g_selectedTimeBetweenFeedIndex + 1, TIME_BETWEEN_FEED_OPTIONS.length - 1);
+};
+
+var decreaseFeedSpeed = function() {
+  g_selectedTimeBetweenFeedIndex = Math.max(g_selectedTimeBetweenFeedIndex - 1, 0);
+};
+
 var isInState = function(state) {
   return g_state == state;
 }
@@ -496,6 +519,14 @@ var processKeyDown = function(dt, event, sceneIndex) {
 
   if (isInState(STATES.FINISHED)) {
     transitionToState(STATES.STARTING, sceneIndex);
+    return;
+  }
+
+  if (event.key === "ArrowUp") {
+    increaseFeedSpeed();
+    return;
+  } else if (event.key === "ArrowDown") {
+    decreaseFeedSpeed();
     return;
   }
 
@@ -673,12 +704,19 @@ var updateStopwatch = function(sceneIndex, roundStartTime) {
   sceneIndex.stopwatchContainer.visible = isInState(STATES.PLAYING);
 };
 
-var updateGameSpeed = function(score) {
-  var maxScorePct = score / MAX_SCORE;
+// var updateGameSpeed = function(score) {
+//   var maxScorePct = score / MAX_SCORE;
 
-  var timeBetweenFeeds = linear(maxScorePct, SLOWEST_TIME_BETWEEN_FEEDS, FASTEST_TIME_BETWEEN_FEEDS);
-  g_timeBetweenFeeds = timeBetweenFeeds;
-};
+//   var timeBetweenFeeds = linear(maxScorePct, SLOWEST_TIME_BETWEEN_FEEDS, FASTEST_TIME_BETWEEN_FEEDS);
+//   g_timeBetweenFeeds = timeBetweenFeeds;
+// };
+
+var updateFeedSpeed = function(sceneIndex) {
+  var feedSpeed = g_selectedTimeBetweenFeedIndex + 1;
+  sceneIndex.feedSpeedText.text = feedSpeed;
+  sceneIndex.feedSpeedText.x = WIDTH - sceneIndex.feedSpeedText.width - 10;
+  sceneIndex.feedSpeedText.y = HEIGHT - sceneIndex.feedSpeedText.height - 10;
+}
 
 
 var updateStartScreen = function(dt, sceneIndex) {
@@ -742,7 +780,7 @@ var update_PLAYING = function(dt, sceneIndex) {
 
   processInput(dt, sceneIndex);
   
-  updateGameSpeed(g_score);
+  //updateGameSpeed(g_score);
   updateFeedTimer(dt, sceneIndex);
   for (var i = 0; i < g_tweens.length; i++) {
     updateTween(dt, g_tweens[i]);
@@ -751,6 +789,8 @@ var update_PLAYING = function(dt, sceneIndex) {
   updateNeedle(dt, sceneIndex);
 
   updateStopwatch(sceneIndex, g_roundStartTime)
+  updateFeedSpeed(sceneIndex);
+  
   checkForSackCollision(dt, sceneIndex);
 }
 
@@ -783,6 +823,7 @@ var startRound = function(sceneIndex) {
   g_roundEndTime = null;
   g_roundStartTime = Date.now();
   g_score = 0;
+  g_selectedTimeBetweenFeedIndex = 0;
   g_playerBestTimeEntry = null;
   clearGifts(sceneIndex.giftContainer);
 }
@@ -974,6 +1015,15 @@ var buildSceneGraph = function () {
       var armsContainer = new PIXI.Container();
       worldContainer.addChild(armsContainer);
 
+
+      var feedSpeedContainer = new PIXI.Container();
+      worldContainer.addChild(feedSpeedContainer);
+
+        var feedSpeedText = new PIXI.Text("0", {
+          fontFamily: 'Arial', fontSize: 72, fill: 0x220000
+        });
+        feedSpeedContainer.addChild(feedSpeedText)
+
       var startScreen = new PIXI.Container();
       worldContainer.addChild(startScreen);
 
@@ -1007,6 +1057,8 @@ var buildSceneGraph = function () {
         giftGrabContainer: giftGrabContainer,
         armsContainer: armsContainer,
         spitOutContainer: spitOutContainer,
+        feedSpeedContainer: feedSpeedContainer,
+        feedSpeedText: feedSpeedText,
         startScreen: startScreen,
         resultsScreen: resultsScreen,
         resultsText: resultsText
