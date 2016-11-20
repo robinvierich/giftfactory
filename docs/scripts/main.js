@@ -51,8 +51,6 @@ var WIDTH = 1920;
 
 var FPS = 60;
 
-
-
 var NEEDLE_ROT_MIN = -Math.PI / 2;
 var NEEDLE_ROT_MAX = Math.PI / 2;
 var MAX_SCORE = 100;
@@ -74,6 +72,56 @@ var g_timeBetweenFeeds = 0.5;
 var g_feedTimer = 0;
 var g_nextConveyorBeltIndex = 0;
 var g_score = 0;
+
+var g_roundStartTime = null;
+
+// {name: 'name', score: 0}
+var g_bestTimes = [];
+var NUM_BEST_TIMES_TO_STORE = 10;
+
+var bestTimeSortFn = function(bestTimeEntryA, bestTimeEntryB) {
+  return bestTimeEntryA.time - bestTimeEntryB.time;
+};
+
+var loadBestTimes = function () {
+  var bestTimesJson = window.localStorage.getItem('bestTimes.json');
+  var bestTimes = bestTimesJson ? JSON.parse(bestTimesJson) : [];
+  bestTimes.sort(bestTimeSortFn);
+  return bestTimes;
+};
+
+var saveBestTimes = function (bestTimes) {
+  var bestTimesJson = JSON.stringify(bestTimes);
+  window.localStorage.setItem('bestTimes.json', bestTimesJson);
+};
+
+var createBestTime = function(roundTime, playerName) {
+  return {time: roundTime, name: playerName};
+};
+
+
+// assumes bestTimes is sorted from min -> max round time
+// if tie with the bottom of leaderboard, returns true
+var isNewBestTime = function(bestTimes, currRoundTime) {
+  return bestTimes[bestTimes.length - 1].time >= currRoundTime;
+};
+
+// returns the new best time entry;
+var updateBestTimes = function(bestTimes, currRoundTime, playerName) {
+  var newBestTime = createBestTime(currRoundTime, playerName);
+
+  var worstOfBestTimeEntries = bestTimes[0];
+  var worstOfBestTimeEntriesIdx = 0;
+
+  bestTimes.push(newBestTime);
+  bestTimes.sort(bestTimeSortFn);
+
+  while (bestTimes.length > NUM_BEST_TIMES_TO_STORE) {
+    bestTimes.pop();
+  }
+
+  return newBestTime;
+};
 
 var getTickerDt = function (ticker) {
   var ms = Math.min(ticker.elapsedMS, ticker._maxElapsedMS);
@@ -546,14 +594,44 @@ var checkForSackCollision = function(dt, sceneIndex) {
   }
 };
 
-var checkForWin = function() {
-  if (g_score >= MAX_SCORE) {
-    alert('you win!');
-    window.location.reload();
+var askForPlayerName = function() {
+  return window.prompt('What is your name?', 'Top Elf');
+}
+
+var showFinishScreen = function(bestTimes, playerBestTimeEntry, roundTime) {
+  var winMsg = "You Win! You filled Santa's gift sack in " + Math.round(roundTime / 10) / 100 + ' seconds.';
+
+  if (playerBestTimeEntry) {
+    winMsg += 'You made it to number' + (bestTimes.indexOf(playerBestTimeEntry) + 1) + ' on the leaderboard! Great job!'
   }
+
+  alert(winMsg);
 };
 
+var finishGame = function(bestTimes, roundTime) {
+  var playerBestTimeEntry = null;
+
+  if (isNewBestTime(roundTime)) {
+    var playerName = askForPlayerName();
+    var playerBestTimeEntry = updateBestTimes(bestTimes, roundTime, playerName);
+  }
+  
+  showFinishScreen(bestTimes, playerBestTimeEntry, roundTime);
+}
+
+var checkForWin = function() {
+  return g_score >= MAX_SCORE;
+};
+
+var g_boundRunFn = null;
+
 var update = function (dt, sceneIndex) {
+  if (checkForWin()) {
+    var roundTime = Date.now() - g_roundStartTime;
+    PIXI.ticker.shared.remove(g_boundRunFn);
+    finishGame(g_bestTimes, roundTime);
+  }
+
   processInput(dt, sceneIndex);
   updateFeedTimer(dt, sceneIndex);
   for (var i = 0; i < g_tweens.length; i++) {
@@ -562,8 +640,6 @@ var update = function (dt, sceneIndex) {
 
   updateNeedle(dt, sceneIndex);
   checkForSackCollision(dt, sceneIndex);
-
-  checkForWin();
 };
 
 var run = function (renderer, sceneIndex) {
@@ -572,11 +648,11 @@ var run = function (renderer, sceneIndex) {
 };
 
 var startGame = function (renderer, sceneIndex) {
-  //setupScene(sceneIndex);
-  PIXI.ticker.shared.add(run.bind(null, renderer, sceneIndex));
+  g_boundRunFn = run.bind(null, renderer, sceneIndex);
+  g_bestTimes = loadBestTimes();
+  g_roundStartTime = Date.now();
+  PIXI.ticker.shared.add(g_boundRunFn);
 };
-
-// returns an index of {name: element}
 
 var addConveyorBelt = function(conveyorBeltDatum) {
   var conveyorBelt = PIXI.Sprite.fromFrame(conveyorBeltDatum.assetPath);
