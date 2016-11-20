@@ -371,12 +371,12 @@ var createGiftTweens = function(gift, endPos, endRot) {
 };
 
 var createFallingTween = function(gift, sack, direction) {
-  var DROP_DURATION = 0.5;
+  var DROP_DURATION = 0.5;;
 
   var directionMultiplier = (direction === LEFT) ? 1 : -1;
 
   var startPos = new PIXI.Point(gift.x, gift.y);
-  var endPos = new PIXI.Point(sack.x + directionMultiplier * 100, sack.y)
+  var endPos = new PIXI.Point(sack.x + directionMultiplier * 20, sack.y)
 
   var bezier = new Bezier(
     startPos.x, startPos.y,
@@ -389,8 +389,15 @@ var createFallingTween = function(gift, sack, direction) {
 
   var fallEasing = lutEasing.bind(null, bezier.getLUT(DROP_DURATION * FPS));
 
-  var tween = createTween(gift.position, startPos, endPos, DROP_DURATION, fallEasing);
-  startTween(tween);
+  var positionTween = createTween(gift.position, startPos, endPos, DROP_DURATION, fallEasing);
+  startTween(positionTween);
+
+  
+  var startRot = gift.rotation;
+  var endRot = directionMultiplier * (Math.random() * Math.PI / 4 + Math.PI / 8);
+
+  var rotationTween = createTween(gift, {rotation: gift.rotation}, {rotation: endRot}, DROP_DURATION, linear);
+  startTween(rotationTween);
 };
 
 var feedGifts = function(conveyorBelt, giftContainer, sack) {
@@ -650,7 +657,7 @@ var checkForSackCollision = function(dt, sceneIndex) {
     var gift = gifts[i];
 
     var sackBounds = sack.getBounds();
-    var newHeight = sackBounds.height / 2;
+    var newHeight = sackBounds.height / 4;
     var heightChange = sackBounds.height - newHeight;
     sackBounds.height = newHeight;
     sackBounds.y += heightChange;
