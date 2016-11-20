@@ -52,10 +52,10 @@ var FPS = 60;
 
 var NEEDLE_ROT_MIN = -Math.PI / 2;
 var NEEDLE_ROT_MAX = Math.PI / 2;
-var MAX_SCORE = 20;
+var MAX_SCORE = 60;
 
 var MAX_GIFTS_PER_CONVEYOR_BELT = 5;
-var BAD_GIFT_CHANCE = 0.4;
+var BAD_GIFT_CHANCE = 0.25;
 
 var g_conveyorBeltToGifts = new Map();
 var g_conveyorBeltToData = new Map();
@@ -67,6 +67,9 @@ var g_eventQueue = [];
 var g_tweens = [];
 
 var g_feedPaused = false;
+
+var SLOWEST_TIME_BETWEEN_FEEDS = 0.5;
+var FASTEST_TIME_BETWEEN_FEEDS = 0.2;
 
 var g_timeBetweenFeeds = 0.5;
 var g_feedTimer = 0;
@@ -595,6 +598,45 @@ var checkForSackCollision = function(dt, sceneIndex) {
   }
 };
 
+
+var leftPad = function(num, digits, char) {
+  var char = char || '0';
+  var str = '';
+
+  for (var d = 1; d < digits; ++d) {
+    if (num < Math.pow(10, d)) {
+      str += char;
+    }
+  }
+
+  return str + num.toString();
+};
+
+var getStopwatchText = function(milliseconds) {
+  var seconds = milliseconds >= 1000 ? Math.floor(milliseconds / 1000) : 0;
+  var minutes = seconds >= 60 ? Math.floor(seconds / 60) : 0;
+
+  var timeStr =
+    (minutes > 0 ? minutes + ':' : '') +
+    ((seconds % 60) + ':') +
+    leftPad(milliseconds % 1000, 3);
+
+  return timeStr;
+}
+
+var updateStopwatch = function(sceneIndex, roundStartTime) {
+  var currRoundTime = Date.now() - roundStartTime;
+  sceneIndex.stopwatchText.text = getStopwatchText(currRoundTime);
+  sceneIndex.stopwatchContainer.x = (WIDTH / 2 - sceneIndex.scaleContainer.width / 2) + (sceneIndex.scaleContainer.width - sceneIndex.stopwatchContainer.width) / 2;
+};
+
+var updateGameSpeed = function(score) {
+  var maxScorePct = score / MAX_SCORE;
+
+  var timeBetweenFeeds = linear(maxScorePct, SLOWEST_TIME_BETWEEN_FEEDS, FASTEST_TIME_BETWEEN_FEEDS);
+  g_timeBetweenFeeds = timeBetweenFeeds;
+};
+
 var askForPlayerName = function() {
   return window.prompt('What is your name?', 'Top Elf');
 }
@@ -635,12 +677,15 @@ var update = function (dt, sceneIndex) {
   }
 
   processInput(dt, sceneIndex);
+  updateGameSpeed(g_score);
   updateFeedTimer(dt, sceneIndex);
   for (var i = 0; i < g_tweens.length; i++) {
     updateTween(dt, g_tweens[i]);
   }
 
   updateNeedle(dt, sceneIndex);
+
+  updateStopwatch(sceneIndex, g_roundStartTime)
   checkForSackCollision(dt, sceneIndex);
 };
 
@@ -821,6 +866,18 @@ var buildSceneGraph = function () {
       sack.scale.set(ASSET_SCALE);
       worldContainer.addChild(sack);
 
+      var stopwatchContainer = new PIXI.Container();
+      worldContainer.addChild(stopwatchContainer);
+
+        var stopwatchText = new PIXI.Text(getStopwatchText(0), {
+          fontFamily: 'courier', fontSize: 60, fill: 0x220000, align: 'left'
+        });
+        stopwatchContainer.addChild(stopwatchText);
+
+      stopwatchContainer.x = (WIDTH / 2 - scaleContainer.width / 2) + (scaleContainer.width - stopwatchContainer.width) / 2;
+      stopwatchContainer.y = 10;
+         
+
       var spitOutContainer = new PIXI.Container();
       worldContainer.addChild(spitOutContainer);
 
@@ -841,6 +898,8 @@ var buildSceneGraph = function () {
         allConveyorBeltsContainer: allConveyorBeltsContainer,
         giftContainer: giftContainer,
         sack: sack,
+        stopwatchContainer: stopwatchContainer,
+        stopwatchText: stopwatchText,
         giftGrabContainer: giftGrabContainer,
         armsContainer: armsContainer,
         spitOutContainer: spitOutContainer
