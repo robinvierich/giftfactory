@@ -790,7 +790,7 @@ var update_PLAYING = function(dt, sceneIndex) {
 
   updateStopwatch(sceneIndex, g_roundStartTime)
   updateFeedSpeed(sceneIndex);
-  
+
   checkForSackCollision(dt, sceneIndex);
 }
 
@@ -986,6 +986,9 @@ var buildSceneGraph = function () {
       var giftContainer = new PIXI.Container();
       worldContainer.addChild(giftContainer);
 
+      var spitOutContainer = new PIXI.Container();
+      worldContainer.addChild(spitOutContainer);
+
       var sack = PIXI.Sprite.fromFrame(ASSET_PATHS.SACK.OPEN);
       sack.anchor.set(0.5, 1);
       sack.x = WIDTH / 2;
@@ -1005,9 +1008,6 @@ var buildSceneGraph = function () {
       stopwatchContainer.x = (WIDTH / 2 - scaleContainer.width / 2) + (scaleContainer.width - stopwatchContainer.width) / 2;
       stopwatchContainer.y = 10;
          
-
-      var spitOutContainer = new PIXI.Container();
-      worldContainer.addChild(spitOutContainer);
 
       var giftGrabContainer = new PIXI.Container();
       worldContainer.addChild(giftGrabContainer);
