@@ -2,12 +2,7 @@ var DEBUG_CONVEYOR_BELT_NUMBERS = true;
 
 var ASSET_PATHS = {
   BG: 'images/bg-1px.png',
-  CONVEYOR_BELTS: {
-    1: 'images/conveyor-belt1.png',
-    2: 'images/conveyor-belt2.png',
-    3: 'images/conveyor-belt3.png',
-    4: 'images/conveyor-belt4.png'
-  },
+  CONVEYOR_BELT_FRAMES: ['images/conveyor-belt1.png', 'images/conveyor-belt2.png', 'images/conveyor-belt3.png', 'images/conveyor-belt4.png'],
   DROP_PLATFORM: 'images/platform.png',
   SPOTLIGHT: 'images/spotlight.png',
   GIFTS: [
@@ -358,16 +353,24 @@ var startTween = function(tween) {
   return tween;
 };
 
-var createGiftTweens = function(gift, endPos, endRot) {
-  var DURATION = getTimeBetweenFeeds() / 3;
-
+var createGiftTweens = function(gift, endPos, endRot, duration) {
   var startPos = new PIXI.Point(gift.x, gift.y);
 
-  var posTween = createTween(gift.position, startPos, endPos, DURATION, linear);
-  var rotTween = createTween(gift, {rotation: gift.rotation}, {rotation: endRot}, DURATION, linear);
+  var posTween = createTween(gift.position, startPos, endPos, duration, linear);
+  var rotTween = createTween(gift, {rotation: gift.rotation}, {rotation: endRot}, duration, linear);
 
   startTween(posTween);
   startTween(rotTween);
+};
+
+var createConveyorBeltFeedTween = function(conveyorBelt, duration) {
+  conveyorBelt.gotoAndPlay(0);
+
+  var timerTween = createTimerTween(duration, function() {
+    conveyorBelt.gotoAndStop(0);
+  });
+
+  startTween(timerTween);
 };
 
 var createFallingTween = function(gift, sack, direction) {
@@ -411,14 +414,15 @@ var feedGifts = function(conveyorBelt, giftContainer, sack) {
 
   var fallingGift = (gifts.length > giftTransforms.length) ? gifts.pop() : null;
 
+  var FEED_DURATION = getTimeBetweenFeeds() / 3;
+
   for(var i = 0; i < gifts.length; i++) {
     var gift = gifts[i];
     var nextGiftTransform = giftTransforms[i];
-    // TODO: add a tween here instead
-    //gift.position = nextGiftTransform.position;
-    //gift.rotation = nextGiftTransform.rotation;
-    createGiftTweens(gift, nextGiftTransform.position, nextGiftTransform.rotation);
+    createGiftTweens(gift, nextGiftTransform.position, nextGiftTransform.rotation, FEED_DURATION);
   }
+
+  createConveyorBeltFeedTween(conveyorBelt, FEED_DURATION);
 
   if (fallingGift) {
     createFallingTween(fallingGift, sack, getConveyorBeltFromDirection(conveyorBelt));
@@ -835,8 +839,14 @@ var startRound = function(sceneIndex) {
   clearGifts(sceneIndex.giftContainer);
 }
 
-var addConveyorBelt = function(conveyorBeltDatum) {
-  var conveyorBelt = PIXI.Sprite.fromFrame(conveyorBeltDatum.assetPath);
+var addConveyorBelt = function(conveyorBeltDatum, conveyorBeltTextures) {
+  var conveyorBelt = null;
+  if (conveyorBeltDatum.assetPath) {
+    conveyorBelt = new PIXI.Sprite.fromFrame(conveyorBeltDatum.assetPath);
+  } else {
+    conveyorBelt = new PIXI.extras.MovieClip(conveyorBeltTextures);
+  }
+
   g_conveyorBeltToData.set(conveyorBelt, conveyorBeltDatum);
 
   var fromDirection = conveyorBeltDatum.fromDirection;
@@ -904,6 +914,12 @@ var buildSceneGraph = function () {
       var allConveyorBeltsContainer = new PIXI.Container();
       worldContainer.addChild(allConveyorBeltsContainer);
 
+      var conveyorBeltTextures = [];
+      for (var i = 0; i < ASSET_PATHS.CONVEYOR_BELT_FRAMES.length; i++) {
+        conveyorBeltTextures.push(PIXI.Texture.fromFrame(ASSET_PATHS.CONVEYOR_BELT_FRAMES[i]));
+      }
+
+
       var CONVEYOR_BELT_ROTATION = Math.PI / 12;
 
       var CONVEYOR_BELT_TOP_Y = -200;
@@ -918,7 +934,7 @@ var buildSceneGraph = function () {
 
       var CONVEYOR_BELT_DATA = [
         {
-          position: { x: CONVEYOR_BELT_LEFT_X, y: CONVEYOR_BELT_TOP_Y }, assetPath: ASSET_PATHS.CONVEYOR_BELTS[1], rotation: CONVEYOR_BELT_ROTATION, anchor: {x: 0.5, y: 0.5}, scale: {x: ASSET_SCALE, y: ASSET_SCALE},
+          position: { x: CONVEYOR_BELT_LEFT_X, y: CONVEYOR_BELT_TOP_Y }, rotation: CONVEYOR_BELT_ROTATION, anchor: {x: 0.5, y: 0.5}, scale: {x: ASSET_SCALE, y: ASSET_SCALE},
           fromDirection: LEFT,
           topOrBottom: TOP,
           key: '1',
@@ -929,7 +945,7 @@ var buildSceneGraph = function () {
         },
 
         {
-          position: { x: CONVEYOR_BELT_LEFT_X, y: CONVEYOR_BELT_BOTTOM_Y }, assetPath: ASSET_PATHS.CONVEYOR_BELTS[2], rotation: CONVEYOR_BELT_ROTATION, anchor: {x: 0.5, y: 0.5}, scale: {x: ASSET_SCALE, y: ASSET_SCALE},
+          position: { x: CONVEYOR_BELT_LEFT_X, y: CONVEYOR_BELT_BOTTOM_Y }, rotation: CONVEYOR_BELT_ROTATION, anchor: {x: 0.5, y: 0.5}, scale: {x: ASSET_SCALE, y: ASSET_SCALE},
           fromDirection: LEFT,
           topOrBottom: BOTTOM,
           key: '2',
@@ -940,7 +956,7 @@ var buildSceneGraph = function () {
         },
 
         {
-          position: { x: CONVEYOR_BELT_RIGHT_X, y: CONVEYOR_BELT_TOP_Y }, assetPath: ASSET_PATHS.CONVEYOR_BELTS[3], rotation: -CONVEYOR_BELT_ROTATION, anchor: {x: 0.5, y: 0.5}, scale: {x: ASSET_SCALE, y: ASSET_SCALE},
+          position: { x: CONVEYOR_BELT_RIGHT_X, y: CONVEYOR_BELT_TOP_Y }, rotation: -CONVEYOR_BELT_ROTATION, anchor: {x: 0.5, y: 0.5}, scale: {x: ASSET_SCALE, y: ASSET_SCALE},
           fromDirection: RIGHT,
           topOrBottom: TOP,
           key: '3',
@@ -951,7 +967,7 @@ var buildSceneGraph = function () {
         },
 
         {
-          position: { x: CONVEYOR_BELT_RIGHT_X, y: CONVEYOR_BELT_BOTTOM_Y }, assetPath: ASSET_PATHS.CONVEYOR_BELTS[4], rotation: -CONVEYOR_BELT_ROTATION, anchor: {x: 0.5, y: 0.5}, scale: {x: ASSET_SCALE, y: ASSET_SCALE},
+          position: { x: CONVEYOR_BELT_RIGHT_X, y: CONVEYOR_BELT_BOTTOM_Y }, rotation: -CONVEYOR_BELT_ROTATION, anchor: {x: 0.5, y: 0.5}, scale: {x: ASSET_SCALE, y: ASSET_SCALE},
           fromDirection: RIGHT,
           topOrBottom: BOTTOM,
           key: '4',
@@ -980,8 +996,8 @@ var buildSceneGraph = function () {
 
       CONVEYOR_BELT_DATA.forEach(function (conveyorBeltDatum) {
         var conveyorBeltContainer = new PIXI.Container();
-        var conveyorBelt = addConveyorBelt(conveyorBeltDatum);
-        var dropConveyorBelt = addConveyorBelt(conveyorBeltDatum.dropConveyorBeltDatum);
+        var conveyorBelt = addConveyorBelt(conveyorBeltDatum, conveyorBeltTextures);
+        var dropConveyorBelt = addConveyorBelt(conveyorBeltDatum.dropConveyorBeltDatum, conveyorBeltTextures);
 
         allConveyorBeltsContainer.addChild(conveyorBelt);
         allConveyorBeltsContainer.addChild(dropConveyorBelt);
