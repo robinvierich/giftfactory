@@ -88,6 +88,8 @@ var MAX_SCORE = 60;
 var MAX_GIFTS_PER_CONVEYOR_BELT = 4;
 var BAD_GIFT_CHANCE = 0.25;
 
+var g_audioCtx = null;
+
 var g_conveyorBeltToGifts = new Map();
 var g_conveyorBeltToData = new Map();
 var g_keyToConveyorBelt = new Map();
@@ -771,6 +773,29 @@ var updateFeedSpeed = function(sceneIndex) {
   sceneIndex.feedSpeedText.y = HEIGHT - sceneIndex.feedSpeedText.height - 10;
 }
 
+var SNOWFLAKES_Y_SPEED_PER_LAYER = [300, 200];
+var SNOWFLAKES_X_SPEED_PER_LAYER = [0, 0];
+
+var updateSnowflakes = function(dt, sceneIndex) {
+  var snowflakesContainer = sceneIndex.snowflakesContainer;
+
+  for (var i = 0; i < snowflakesContainer.children.length; ++i) {
+    var snowflakesLayer = snowflakesContainer.children[i];
+
+    for (var j = 0; j < snowflakesLayer.children.length; ++j) {
+      var snowflakesSprite =  snowflakesLayer.children[j];
+
+      if (snowflakesSprite.y >= HEIGHT) {
+        snowflakesSprite.y = -snowflakesSprite.height + (HEIGHT - snowflakesSprite.height);
+        snowflakesSprite.x = 0;
+      }
+
+      snowflakesSprite.y += dt * SNOWFLAKES_Y_SPEED_PER_LAYER[i];
+      snowflakesSprite.x += dt * SNOWFLAKES_X_SPEED_PER_LAYER[i];
+    }
+  }
+};
+
 
 var updateStartScreen = function(dt, sceneIndex) {
   // probably some text animation??
@@ -816,6 +841,7 @@ var update_STARTING = function(dt, sceneIndex) {
   processInput(dt, sceneIndex);
 
   updateStartScreen(dt, sceneIndex);
+  updateSnowflakes(dt, sceneIndex);
 }
 
 var update_FINISHED = function(dt, sceneIndex) {
@@ -824,6 +850,7 @@ var update_FINISHED = function(dt, sceneIndex) {
   processInput(dt, sceneIndex);
 
   updateResultsScreen(dt, sceneIndex, g_bestTimes, roundTime, g_playerBestTimeEntry);
+  updateSnowflakes(dt, sceneIndex);
 };
 
 var update_PLAYING = function(dt, sceneIndex) {
@@ -845,6 +872,8 @@ var update_PLAYING = function(dt, sceneIndex) {
   updateFeedSpeed(sceneIndex);
 
   checkForSackCollision(dt, sceneIndex);
+
+  updateSnowflakes(dt, sceneIndex);
 }
 
 var update = function (dt, sceneIndex) {
@@ -926,8 +955,6 @@ var buildSceneGraph = function () {
 
   var root = new PIXI.Container();
 
-  // root.scale.set(0.5);
-
     var worldContainer = new PIXI.Container();
     root.addChild(worldContainer);
 
@@ -936,24 +963,49 @@ var buildSceneGraph = function () {
       worldContainer.addChild(bgContainer); 
 
         var snowflakesContainer = new PIXI.Container();
+        snowflakesContainer.x = WIDTH/2;
         bgContainer.addChild(snowflakesContainer);
 
-          var snowFlakes1 = new PIXI.Sprite.fromFrame(ASSET_PATHS.BG.SNOWFLAKES1);
-          snowFlakes1.scale.set(ASSET_SCALE);
-          snowflakesContainer.addChild(snowFlakes1);
+          var snowflakesLayer1 = new PIXI.Container();
+          snowflakesContainer.addChild(snowflakesLayer1);
 
-          var snowFlakes2 = new PIXI.Sprite.fromFrame(ASSET_PATHS.BG.SNOWFLAKES2);
-          snowFlakes2.scale.set(ASSET_SCALE);
-          snowflakesContainer.addChild(snowFlakes2);
+            var snowFlakes11 = new PIXI.Sprite.fromFrame(ASSET_PATHS.BG.SNOWFLAKES1);
+            snowFlakes11.scale.set(ASSET_SCALE);
+            snowFlakes11.anchor.set(0.5, 0);
+      
+            var LAYER_1_Y_OFFSET = Math.abs(HEIGHT - snowFlakes11.height);
+            snowFlakes11.y = LAYER_1_Y_OFFSET;
+            
+            snowflakesLayer1.addChild(snowFlakes11);
+
+            var snowFlakes12 = new PIXI.Sprite.fromFrame(ASSET_PATHS.BG.SNOWFLAKES1);
+            snowFlakes12.scale.set(ASSET_SCALE);
+            snowFlakes12.anchor.set(0.5, 0);
+            snowFlakes12.y = -snowFlakes12.height + LAYER_1_Y_OFFSET;
+            snowflakesLayer1.addChild(snowFlakes12);
+
+          var snowflakesLayer2 = new PIXI.Container();
+          snowflakesContainer.addChild(snowflakesLayer2);
+
+            var snowFlakes21 = new PIXI.Sprite.fromFrame(ASSET_PATHS.BG.SNOWFLAKES2);
+            snowFlakes21.scale.set(ASSET_SCALE);
+            snowFlakes21.anchor.set(0.5, 0);
+
+            var LAYER_2_Y_OFFSET = Math.abs(HEIGHT - snowFlakes21.height);
+            snowFlakes21.y = LAYER_2_Y_OFFSET;
+            snowflakesLayer2.addChild(snowFlakes21);
+
+            var snowFlakes22 = new PIXI.Sprite.fromFrame(ASSET_PATHS.BG.SNOWFLAKES2);
+            snowFlakes22.scale.set(ASSET_SCALE);
+            snowFlakes22.anchor.set(0.5, 0);
+            snowFlakes22.y = -snowFlakes22.height + LAYER_2_Y_OFFSET;
+            snowflakesLayer2.addChild(snowFlakes22);
 
         var bgWall = new PIXI.Sprite.fromFrame(ASSET_PATHS.BG.WALL);
-//         bgWall.height = HEIGHT;
-//         bgWall.width = WIDTH;
         bgWall.scale.set(ASSET_SCALE);
         bgContainer.addChild(bgWall);
 
         var bgGarland = new PIXI.Sprite.fromFrame(ASSET_PATHS.BG.GARLAND);
-//         bgGarland.scale.set(WIDTH / bgGarland.width)
         bgGarland.anchor.set(0.5, 0);
         bgGarland.x = WIDTH / 2;
         bgGarland.scale.set(ASSET_SCALE);
@@ -962,8 +1014,7 @@ var buildSceneGraph = function () {
         var bgGifts = new PIXI.Sprite.fromFrame(ASSET_PATHS.BG.GIFTS);
         bgGifts.anchor.set(0,1);
         bgGifts.scale.set(ASSET_SCALE);
-         bgGifts.y = HEIGHT;
-//         bgGifts.scale.set(WIDTH / bgGifts.width)
+        bgGifts.y = HEIGHT;
         bgContainer.addChild(bgGifts);
 
       //bgContainer.height = HEIGHT;
@@ -1147,6 +1198,7 @@ var buildSceneGraph = function () {
     root: root,
       worldContainer: worldContainer,
         bgContainer: bgContainer,
+        snowflakesContainer: snowflakesContainer,
         scaleContainer: scaleContainer,
         scale: scale,
         needle: needle,
@@ -1207,9 +1259,25 @@ var load = function () {
   });
 };
 
+var initBackroundMusic = function(audioCtx) {
+  var audioElem = document.getElementById('music');
+  audioElem.play();
+
+  var source = audioCtx.createMediaElementSource(audioElem);
+  var gainNode = audioCtx.createGain();
+  gainNode.gain.value = 1.0;
+
+  source.connect(gainNode);
+  gainNode.connect(audioCtx.destination);
+}
+
 var init = function () {
   var canvas = document.getElementById('root-canvas');
   var resolution = document.devicePixelRatio;
+
+  g_audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+  initBackroundMusic(g_audioCtx);
 
   var renderer = new PIXI.WebGLRenderer(WIDTH, HEIGHT, {
     view: canvas,
