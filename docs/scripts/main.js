@@ -34,7 +34,7 @@ var ASSET_PATHS = {
   ],
   
   SACK: {
-    OPEN: 'images/bag-Open.png',
+    OPEN: 'images/bag-open.png',
     CLOSED: 'images/bag-closed.png',
     SPIT: 'images/bag-spit.png',
   },
