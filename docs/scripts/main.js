@@ -739,22 +739,29 @@ var leftPad = function(num, digits, char) {
   return str + num.toString();
 };
 
-var getStopwatchText = function(milliseconds) {
+var getStopwatchMillisecondsText = function(milliseconds) {
+  return leftPad(milliseconds % 1000, 3);
+};
+
+var getStopwatchSecondsText = function(milliseconds) {
+  var seconds = milliseconds >= 1000 ? Math.floor(milliseconds / 1000) : 0;
+  return leftPad(seconds % 60, 2);
+};
+
+var getStopwatchMinutesText = function(milliseconds) {
   var seconds = milliseconds >= 1000 ? Math.floor(milliseconds / 1000) : 0;
   var minutes = seconds >= 60 ? Math.floor(seconds / 60) : 0;
-
-  var timeStr =
-    (minutes > 0 ? minutes + ':' : '') +
-    ((seconds % 60) + ':') +
-    leftPad(milliseconds % 1000, 3);
-
-  return timeStr;
-}
+  return (minutes > 0 ? minutes + ':' : '')
+};
 
 var updateStopwatch = function(sceneIndex, roundStartTime) {
   var currRoundTime = Date.now() - roundStartTime;
-  sceneIndex.stopwatchText.text = getStopwatchText(currRoundTime);
-  sceneIndex.stopwatchContainer.x = (WIDTH / 2 - sceneIndex.scaleContainer.width / 2) + (sceneIndex.scaleContainer.width - sceneIndex.stopwatchContainer.width) / 2;
+  sceneIndex.stopwatchMillisecondsText.text = getStopwatchMillisecondsText(currRoundTime);
+  sceneIndex.stopwatchSecondsText.text = getStopwatchSecondsText(currRoundTime);
+  sceneIndex.stopwatchSecondsText.x = sceneIndex.stopwatchMillisecondsText.x - sceneIndex.stopwatchSecondsText.width - 30;
+  sceneIndex.stopwatchMinutesText.text = getStopwatchMinutesText(currRoundTime);
+
+  sceneIndex.stopwatchMinutesText.x = sceneIndex.stopwatchSecondsText.x - sceneIndex.stopwatchMinutesText.width - 20;
 
   sceneIndex.stopwatchContainer.visible = isInState(STATES.PLAYING);
 };
@@ -837,6 +844,12 @@ var checkForWin = function() {
 
 var g_boundRunFn = null;
 
+var updateTweens = function(dt) {
+  for (var i = 0; i < g_tweens.length; i++) {
+    updateTween(dt, g_tweens[i]);
+  }
+};
+
 var update_STARTING = function(dt, sceneIndex) {
   processInput(dt, sceneIndex);
 
@@ -850,6 +863,8 @@ var update_FINISHED = function(dt, sceneIndex) {
   processInput(dt, sceneIndex);
 
   updateResultsScreen(dt, sceneIndex, g_bestTimes, roundTime, g_playerBestTimeEntry);
+
+  updateTweens(dt);
   updateSnowflakes(dt, sceneIndex);
 };
 
@@ -862,9 +877,7 @@ var update_PLAYING = function(dt, sceneIndex) {
   
   //updateGameSpeed(g_score);
   updateFeedTimer(dt, sceneIndex);
-  for (var i = 0; i < g_tweens.length; i++) {
-    updateTween(dt, g_tweens[i]);
-  }
+  updateTweens(dt);
 
   updateNeedle(dt, sceneIndex);
 
@@ -1147,16 +1160,55 @@ var buildSceneGraph = function () {
       worldContainer.addChild(sack);
 
       var stopwatchContainer = new PIXI.Container();
-      stopwatchContainer.visible = false;
       worldContainer.addChild(stopwatchContainer);
 
-        var stopwatchText = new PIXI.extras.BitmapText(getStopwatchText(0), {
+        var stopwatchLabel =  new PIXI.extras.BitmapText('TIME', {
           font: "BaarGoetheanis"
         });
-        stopwatchContainer.addChild(stopwatchText);
+        stopwatchLabel.scale.set(0.35);
+        stopwatchContainer.addChild(stopwatchLabel);
 
-      stopwatchContainer.x = (WIDTH / 2 - scaleContainer.width / 2) + (scaleContainer.width - stopwatchContainer.width) / 2;
-      stopwatchContainer.y = 10;
+        var stopwatchMinutesText = new PIXI.extras.BitmapText('', {
+          font: "BaarGoetheanis"
+        });
+        stopwatchContainer.addChild(stopwatchMinutesText);
+
+//         var stopwatchMinutesSeperatorText = new PIXI.extras.BitmapText(':', {
+//           font: "BaarGoetheanis"
+//         });
+//         stopwatchMinutesSeperatorText.x = stopwatchMinutesText.x + stopwatchMinutesText.width;
+//         stopwatchContainer.addChild(stopwatchMinutesSeperatorText);
+
+        var stopwatchSecondsText = new PIXI.extras.BitmapText(getStopwatchSecondsText(0), {
+          font: "BaarGoetheanis"
+        });
+        stopwatchSecondsText.x = stopwatchMinutesText.x + stopwatchMinutesText.width + 10;
+        stopwatchContainer.addChild(stopwatchSecondsText);
+
+        var stopwatchSecondsSeperatorText = new PIXI.extras.BitmapText(':', {
+          font: "BaarGoetheanis"
+        });
+        stopwatchSecondsSeperatorText.x = stopwatchSecondsText.x + stopwatchSecondsText.width;
+        stopwatchSecondsSeperatorText.scale.set(0.5);
+        stopwatchSecondsSeperatorText.y = stopwatchSecondsText.height - stopwatchSecondsSeperatorText.height;
+        stopwatchContainer.addChild(stopwatchSecondsSeperatorText);
+
+        var stopwatchMillisecondsText = new PIXI.extras.BitmapText(getStopwatchMillisecondsText(0), {
+          font: "BaarGoetheanis"
+        });
+        stopwatchMillisecondsText.scale.set(0.5);
+        stopwatchMillisecondsText.x = stopwatchSecondsSeperatorText.x + stopwatchSecondsSeperatorText.width + 10;
+        stopwatchMillisecondsText.y = stopwatchSecondsSeperatorText.y;
+        
+        stopwatchContainer.addChild(stopwatchMillisecondsText);
+
+        
+
+        stopwatchLabel.position.set(stopwatchContainer.width / 2 - stopwatchLabel.width, -25)
+      
+      stopwatchContainer.y = 40; 
+      stopwatchContainer.x = (WIDTH - stopwatchContainer.width - 10);
+      stopwatchContainer.visible = false;
          
 
       var giftGrabContainer = new PIXI.Container();
@@ -1206,7 +1258,9 @@ var buildSceneGraph = function () {
         giftContainer: giftContainer,
         sack: sack,
         stopwatchContainer: stopwatchContainer,
-        stopwatchText: stopwatchText,
+        stopwatchMinutesText: stopwatchMinutesText,
+        stopwatchSecondsText: stopwatchSecondsText,
+        stopwatchMillisecondsText: stopwatchMillisecondsText,
         giftGrabContainer: giftGrabContainer,
         armsContainer: armsContainer,
         spitOutContainer: spitOutContainer,
@@ -1323,6 +1377,8 @@ var STATE_TRANSITIONS = {
   FINISHED: {
     enter: function(sceneIndex) {
       sceneIndex.resultsScreen.visible = true;
+
+      sceneIndex.sack.texture = PIXI.utils.TextureCache[ASSET_PATHS.SACK.CLOSED];
 
       g_roundEndTime = Date.now()
 
