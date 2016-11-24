@@ -997,6 +997,7 @@ var startRound = function(sceneIndex) {
   g_score = 0;
   g_selectedTimeBetweenFeedIndex = 0;
   g_playerBestTimeEntry = null;
+  sceneIndex.sack.texture = PIXI.utils.TextureCache[ASSET_PATHS.SACK.OPEN];
   clearGifts(sceneIndex.giftContainer);
 }
 
