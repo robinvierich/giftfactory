@@ -1,35 +1,58 @@
 var DEBUG_CONVEYOR_BELT_NUMBERS = true;
 
 var ASSET_PATHS = {
-  BG: 'images/bg-1px.png',
-  CONVEYOR_BELT_FRAMES: ['images/conveyor-belt1.png', 'images/conveyor-belt2.png', 'images/conveyor-belt3.png', 'images/conveyor-belt4.png'],
-  DROP_PLATFORM: 'images/platform.png',
-  SPOTLIGHT: 'images/spotlight.png',
+  BG: {
+    SKY: 'images/bg-sky-colour141721.png',
+    SNOWFLAKES1: 'images/bg-snowflakes1.png',
+    SNOWFLAKES2: 'images/bg-snowflakes2.png',
+    WALL: 'images/bg-wall.png',
+    GARLAND: 'images/bg-garland.png',
+    GIFTS: 'images/bg-gifts.png',
+  },
+  
+  CONVEYOR_BELT_FRAMES: ['images/conveyorBelt.png'], //, 'images/conveyor-belt2.png', 'images/conveyor-belt3.png', 'images/conveyor-belt4.png'],
+  PLATFORM1: 'images/platform1.png',
+  PLATFORM2: 'images/platform2.png',
+  PLATFORM3: 'images/platform3.png',
+  PLATFORM4: 'images/platform4.png',
+
+  SPOTLIGHT: 'images/platform-halo.png',
+
   GIFTS: [
     'images/item-gift1-xmas.png',
-    'images/item-gift2-xmas.png'
+    'images/item-gift2-xmas.png',
+    'images/item-gift3-xmas.png'
   ],
+  
   BAD_GIFTS: [
+    'images/item-bunny.png',
+    'images/item-easterEgg.png',
     'images/item-heart.png',
-    'images/item-pot-of-gold.png',
+    'images/item-potOfGold.png',
     'images/item-pumpkin.png',
     'images/item-turkey.png'
   ],
+  
   SACK: {
-    OPEN: 'images/bag-open.png',
+    OPEN: 'images/bag-Open.png',
     CLOSED: 'images/bag-closed.png',
     SPIT: 'images/bag-spit.png',
   },
+
   SCALE: 'images/scale-pole.png',
   NEEDLE: 'images/scale-arrow.png',
 
   ARMS: {
-    OPEN: 'images/arms-hands-reach.png',
-    CLOSED: 'images/arms-hands-grab.png',
-  }
+    OPEN: 'images/arms-handsReach.png',
+    CLOSED: 'images/arms-handsGrab.png',
+    FIDGETING1: 'images/arms-handsFidgeting1.png',
+    FIDGETING2: 'images/arms-handsFidgeting2.png'
+  },
+
+  BG_MUSIC: 'audio/music/Jordan_Gladstone_-_07_-_The_Christmas_is_in_Another_Castle.mp3',
 };
 
-var ASSET_SCALE = 0.33;
+var ASSET_SCALE = 0.3;
 
 var LEFT = 1;
 var RIGHT = 2;
@@ -888,10 +911,43 @@ var buildSceneGraph = function () {
     var worldContainer = new PIXI.Container();
     root.addChild(worldContainer);
 
-      var bg = PIXI.extras.TilingSprite.fromFrame(ASSET_PATHS.BG);
-      bg.height = HEIGHT;
-      bg.width = WIDTH;
-      worldContainer.addChild(bg);
+
+      var bgContainer = new PIXI.Container();
+      worldContainer.addChild(bgContainer); 
+
+        var snowflakesContainer = new PIXI.Container();
+        bgContainer.addChild(snowflakesContainer);
+
+          var snowFlakes1 = new PIXI.Sprite.fromFrame(ASSET_PATHS.BG.SNOWFLAKES1);
+          snowFlakes1.scale.set(ASSET_SCALE);
+          snowflakesContainer.addChild(snowFlakes1);
+
+          var snowFlakes2 = new PIXI.Sprite.fromFrame(ASSET_PATHS.BG.SNOWFLAKES2);
+          snowFlakes2.scale.set(ASSET_SCALE);
+          snowflakesContainer.addChild(snowFlakes2);
+
+        var bgWall = new PIXI.Sprite.fromFrame(ASSET_PATHS.BG.WALL);
+//         bgWall.height = HEIGHT;
+//         bgWall.width = WIDTH;
+        bgWall.scale.set(ASSET_SCALE);
+        bgContainer.addChild(bgWall);
+
+        var bgGarland = new PIXI.Sprite.fromFrame(ASSET_PATHS.BG.GARLAND);
+//         bgGarland.scale.set(WIDTH / bgGarland.width)
+        bgGarland.anchor.set(0.5, 0);
+        bgGarland.x = WIDTH / 2;
+        bgGarland.scale.set(ASSET_SCALE);
+        bgContainer.addChild(bgGarland);
+
+        var bgGifts = new PIXI.Sprite.fromFrame(ASSET_PATHS.BG.GIFTS);
+        bgGifts.anchor.set(0,1);
+        bgGifts.scale.set(ASSET_SCALE);
+         bgGifts.y = HEIGHT;
+//         bgGifts.scale.set(WIDTH / bgGifts.width)
+        bgContainer.addChild(bgGifts);
+
+      //bgContainer.height = HEIGHT;
+      //bgContainer.width = WIDTH;
 
       var scaleContainer = new PIXI.Container();
       //scaleContainer.scale.set(0.25);
@@ -905,7 +961,7 @@ var buildSceneGraph = function () {
 
         var needle = PIXI.Sprite.fromFrame(ASSET_PATHS.NEEDLE);
         needle.anchor.set(0.5, 1);
-        needle.position.set(scale.x - 5, 235);
+        needle.position.set(scale.x + 5, 200);
         needle.scale.set(ASSET_SCALE);
         needle.pivot.y = -100;
         needle.rotation = -Math.PI / 4;
@@ -920,17 +976,17 @@ var buildSceneGraph = function () {
       }
 
 
-      var CONVEYOR_BELT_ROTATION = Math.PI / 12;
+      var CONVEYOR_BELT_ROTATION = Math.PI / 10;
 
-      var CONVEYOR_BELT_TOP_Y = -200;
-      var DROP_CONVEYOR_BELT_TOP_Y = CONVEYOR_BELT_TOP_Y + 180;
-      var CONVEYOR_BELT_BOTTOM_Y = 50;
-      var DROP_CONVEYOR_BELT_BOTTOM_Y = CONVEYOR_BELT_BOTTOM_Y + 180;
+      var CONVEYOR_BELT_TOP_Y = 20;
+      var DROP_CONVEYOR_BELT_TOP_Y = CONVEYOR_BELT_TOP_Y + 140;
+      var CONVEYOR_BELT_BOTTOM_Y = 270;
+      var DROP_CONVEYOR_BELT_BOTTOM_Y = CONVEYOR_BELT_BOTTOM_Y + 140;
 
-      var CONVEYOR_BELT_LEFT_X = -400;
-      var DROP_CONVEYOR_BELT_LEFT_X = CONVEYOR_BELT_LEFT_X + 600;
+      var CONVEYOR_BELT_LEFT_X = -50;
+      var DROP_CONVEYOR_BELT_LEFT_X = CONVEYOR_BELT_LEFT_X + 430;
       var CONVEYOR_BELT_RIGHT_X = 1300;
-      var DROP_CONVEYOR_BELT_RIGHT_X = CONVEYOR_BELT_RIGHT_X - 600;
+      var DROP_CONVEYOR_BELT_RIGHT_X = CONVEYOR_BELT_RIGHT_X - 430;
 
       var CONVEYOR_BELT_DATA = [
         {
@@ -939,7 +995,7 @@ var buildSceneGraph = function () {
           topOrBottom: TOP,
           key: '1',
           dropConveyorBeltDatum: {
-            position: { x: DROP_CONVEYOR_BELT_LEFT_X, y: DROP_CONVEYOR_BELT_TOP_Y }, assetPath: ASSET_PATHS.DROP_PLATFORM, rotation: 0, anchor: {x: 0.5, y: 0.5}, scale: {x: ASSET_SCALE, y: ASSET_SCALE},
+            position: { x: DROP_CONVEYOR_BELT_LEFT_X, y: DROP_CONVEYOR_BELT_TOP_Y }, assetPath: ASSET_PATHS.PLATFORM1, rotation: 0, anchor: {x: 0.5, y: 0.5}, scale: {x: ASSET_SCALE, y: ASSET_SCALE},
             fromDirection: LEFT,
           }
         },
@@ -950,7 +1006,7 @@ var buildSceneGraph = function () {
           topOrBottom: BOTTOM,
           key: '2',
           dropConveyorBeltDatum: {
-            position: { x: DROP_CONVEYOR_BELT_LEFT_X, y: DROP_CONVEYOR_BELT_BOTTOM_Y }, assetPath: ASSET_PATHS.DROP_PLATFORM, rotation: 0, anchor: {x: 0.5, y: 0.5}, scale: {x: ASSET_SCALE, y: ASSET_SCALE},
+            position: { x: DROP_CONVEYOR_BELT_LEFT_X, y: DROP_CONVEYOR_BELT_BOTTOM_Y }, assetPath: ASSET_PATHS.PLATFORM2, rotation: 0, anchor: {x: 0.5, y: 0.5}, scale: {x: ASSET_SCALE, y: ASSET_SCALE},
             fromDirection: LEFT,
           }
         },
@@ -961,7 +1017,7 @@ var buildSceneGraph = function () {
           topOrBottom: TOP,
           key: '3',
           dropConveyorBeltDatum: {
-            position: { x: DROP_CONVEYOR_BELT_RIGHT_X, y: DROP_CONVEYOR_BELT_TOP_Y }, assetPath: ASSET_PATHS.DROP_PLATFORM, rotation: 0, anchor: {x: 0.5, y: 0.5}, scale: {x: ASSET_SCALE, y: ASSET_SCALE},
+            position: { x: DROP_CONVEYOR_BELT_RIGHT_X, y: DROP_CONVEYOR_BELT_TOP_Y }, assetPath: ASSET_PATHS.PLATFORM3, rotation: 0, anchor: {x: 0.5, y: 0.5}, scale: {x: ASSET_SCALE, y: ASSET_SCALE},
             fromDirection: LEFT,
           }
         },
@@ -972,7 +1028,7 @@ var buildSceneGraph = function () {
           topOrBottom: BOTTOM,
           key: '4',
           dropConveyorBeltDatum: {
-            position: { x: DROP_CONVEYOR_BELT_RIGHT_X, y: DROP_CONVEYOR_BELT_BOTTOM_Y }, assetPath: ASSET_PATHS.DROP_PLATFORM, rotation: 0, anchor: {x: 0.5, y: 0.5}, scale: {x: ASSET_SCALE, y: ASSET_SCALE},
+            position: { x: DROP_CONVEYOR_BELT_RIGHT_X, y: DROP_CONVEYOR_BELT_BOTTOM_Y }, assetPath: ASSET_PATHS.PLATFORM4, rotation: 0, anchor: {x: 0.5, y: 0.5}, scale: {x: ASSET_SCALE, y: ASSET_SCALE},
             fromDirection: LEFT,
           }
         },
@@ -1015,7 +1071,7 @@ var buildSceneGraph = function () {
       var sack = PIXI.Sprite.fromFrame(ASSET_PATHS.SACK.OPEN);
       sack.anchor.set(0.5, 1);
       sack.x = WIDTH / 2;
-      sack.y = HEIGHT;
+      sack.y = HEIGHT + 100;
       sack.scale.set(ASSET_SCALE);
       worldContainer.addChild(sack);
 
@@ -1068,7 +1124,7 @@ var buildSceneGraph = function () {
   return {
     root: root,
       worldContainer: worldContainer,
-        bg: bg,
+        bgContainer: bgContainer,
         scaleContainer: scaleContainer,
         scale: scale,
         needle: needle,
@@ -1133,6 +1189,8 @@ var init = function () {
     view: canvas,
     resolution: resolution
   });
+
+  renderer.backgroundColor = 0x141721;
 
   load()
   .then(function () {
