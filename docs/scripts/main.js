@@ -50,11 +50,18 @@ var ASSET_PATHS = {
   },
 
   BG_MUSIC: 'audio/music/Jordan_Gladstone_-_07_-_The_Christmas_is_in_Another_Castle.mp3',
+  SFX: {
+    DING: 'audio/sfx/ding.wav',
+    BURP: 'audio/sfx/burp.wav',
+    ELF_GRAB: 'audio/sfx/heheh.wav'
+  },
 
   FONTS: {
     BAAR_GOETHEANIS: 'fonts/baar_goetheanis_regular.xml',
   }
 };
+
+
 
 var KEYS = {
   PLATFORM1: 'ArrowUp',
@@ -133,6 +140,58 @@ var STATES = {
 };
 
 var g_state = STATES.STARTING;
+
+
+var AUDIO_CACHE = {};
+
+
+var _loadAudio = function(audioCtx, path) {
+  var audioElem = new Audio(path);
+  audioElem.autoplay = false;
+
+  var source = audioCtx.createMediaElementSource(audioElem);
+  var gainNode = audioCtx.createGain();
+  gainNode.gain.value = 1.0;
+
+  source.connect(gainNode);
+  gainNode.connect(audioCtx.destination);
+
+  return {
+    elem: audioElem,
+    audioSource: source,
+    gainNode: gainNode,
+  };
+}
+
+var playMusic = function(audioPath) {
+  var audioData = AUDIO_CACHE[audioPath];
+  audioData.elem.play();
+};
+
+var playSfx = function(audioPath) {
+  var audioData = AUDIO_CACHE[audioPath];
+  audioData = _loadAudio(g_audioCtx, audioPath); // super hacky and last minute
+  audioData.elem.play();
+};
+
+var loadAudio = function(audioCtx, path) {
+  var audioData = _loadAudio(audioCtx, path);
+  AUDIO_CACHE[path] = audioData;
+  return audioData;
+}
+
+var loadSfx = function(audioCtx) {
+  for (var sfxRef in ASSET_PATHS.SFX) {
+    if (!ASSET_PATHS.SFX.hasOwnProperty(sfxRef)) { continue; }
+    loadAudio(audioCtx, ASSET_PATHS.SFX[sfxRef]);
+  }
+}
+
+var loadMusic = function(audioCtx) {
+  var musicAudioData = loadAudio(audioCtx, ASSET_PATHS.BG_MUSIC);
+  musicAudioData.gainNode.gain.value = 0.5;
+};
+
 
 var bestTimeSortFn = function(bestTimeEntryA, bestTimeEntryB) {
   return bestTimeEntryA.time - bestTimeEntryB.time;
@@ -533,6 +592,8 @@ var grabGift = function(gift, sceneIndex, topOrBottom) {
   });
 
   startTween(armGrabTween);
+
+  playSfx(ASSET_PATHS.SFX.ELF_GRAB);
 };
 
 var increaseFeedSpeed = function() {
@@ -717,8 +778,10 @@ var checkForSackCollision = function(dt, sceneIndex) {
       if (giftType === BAD) {
         var scoreChange = getScoreFromGift(gift)
         spitOutGifts(Math.abs(scoreChange), gift, sceneIndex);
+        playSfx(ASSET_PATHS.SFX.BURP);
         increaseScore(scoreChange);
       } else {
+        playSfx(ASSET_PATHS.SFX.DING);
         increaseScore(getScoreFromGift(gift));
       }
     }
@@ -920,6 +983,8 @@ var run = function (renderer, sceneIndex) {
 };
 
 var startGame = function (renderer, sceneIndex) {
+  playMusic(ASSET_PATHS.BG_MUSIC);
+
   g_boundRunFn = run.bind(null, renderer, sceneIndex);
   g_bestTimes = loadBestTimes();
   PIXI.ticker.shared.add(g_boundRunFn);
@@ -1344,25 +1409,14 @@ var load = function () {
   });
 };
 
-var initBackroundMusic = function(audioCtx) {
-  var audioElem = document.getElementById('music');
-  audioElem.play();
-
-  var source = audioCtx.createMediaElementSource(audioElem);
-  var gainNode = audioCtx.createGain();
-  gainNode.gain.value = 1.0;
-
-  source.connect(gainNode);
-  gainNode.connect(audioCtx.destination);
-}
-
 var init = function () {
   var canvas = document.getElementById('root-canvas');
   var resolution = document.devicePixelRatio;
 
   g_audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
-  initBackroundMusic(g_audioCtx);
+  loadMusic(g_audioCtx);
+  loadSfx(g_audioCtx);
 
   var renderer = new PIXI.WebGLRenderer(WIDTH, HEIGHT, {
     view: canvas,
