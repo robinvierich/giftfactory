@@ -105,11 +105,11 @@ var SLOWEST_TIME_BETWEEN_FEEDS = 0.5;
 var FASTEST_TIME_BETWEEN_FEEDS = 0.2;
 
 var TIME_BETWEEN_FEED_OPTIONS = [
+  0.6,
   0.5,
   0.4,
   0.3,
-  0.2,
-  0.1
+  0.2
 ];
 
 var g_selectedTimeBetweenFeedIndex = 0;
@@ -774,10 +774,17 @@ var updateStopwatch = function(sceneIndex, roundStartTime) {
 // };
 
 var updateFeedSpeed = function(sceneIndex) {
-  var feedSpeed = g_selectedTimeBetweenFeedIndex + 1;
-  sceneIndex.feedSpeedText.text = feedSpeed;
-  sceneIndex.feedSpeedText.x = WIDTH - sceneIndex.feedSpeedText.width - 10;
-  sceneIndex.feedSpeedText.y = HEIGHT - sceneIndex.feedSpeedText.height - 10;
+  var feedSpeed = (g_selectedTimeBetweenFeedIndex + 1);
+
+  for (var i = 0; i < feedSpeed; i++) {
+    var symbol = sceneIndex.feedSpeedSymbolContainer.children[i];
+    symbol.visible = true;
+  }
+
+  for (var i = feedSpeed; i < TIME_BETWEEN_FEED_OPTIONS.length; i++) {
+    var symbol = sceneIndex.feedSpeedSymbolContainer.children[i];
+    symbol.visible = false;
+  }
 }
 
 var SNOWFLAKES_Y_SPEED_PER_LAYER = [300, 200];
@@ -1159,13 +1166,22 @@ var buildSceneGraph = function () {
       sack.scale.set(ASSET_SCALE);
       worldContainer.addChild(sack);
 
+      var giftGrabContainer = new PIXI.Container();
+      worldContainer.addChild(giftGrabContainer);
+
+      var armsContainer = new PIXI.Container();
+      worldContainer.addChild(armsContainer);
+
+
+      var LABEL_SCALE = 0.35;
+
       var stopwatchContainer = new PIXI.Container();
       worldContainer.addChild(stopwatchContainer);
 
         var stopwatchLabel =  new PIXI.extras.BitmapText('TIME', {
           font: "BaarGoetheanis"
         });
-        stopwatchLabel.scale.set(0.35);
+        stopwatchLabel.scale.set(LABEL_SCALE);
         stopwatchContainer.addChild(stopwatchLabel);
 
         var stopwatchMinutesText = new PIXI.extras.BitmapText('', {
@@ -1202,7 +1218,6 @@ var buildSceneGraph = function () {
         
         stopwatchContainer.addChild(stopwatchMillisecondsText);
 
-        
 
         stopwatchLabel.position.set(stopwatchContainer.width / 2 - stopwatchLabel.width, -25)
       
@@ -1211,20 +1226,33 @@ var buildSceneGraph = function () {
       stopwatchContainer.visible = false;
          
 
-      var giftGrabContainer = new PIXI.Container();
-      worldContainer.addChild(giftGrabContainer);
-
-      var armsContainer = new PIXI.Container();
-      worldContainer.addChild(armsContainer);
-
-
       var feedSpeedContainer = new PIXI.Container();
       worldContainer.addChild(feedSpeedContainer);
 
-        var feedSpeedText = new PIXI.extras.BitmapText("0", {
+        var feedSpeedLabel = new PIXI.extras.BitmapText("SPEED", {
           font: "BaarGoetheanis"
         });
-        feedSpeedContainer.addChild(feedSpeedText)
+        feedSpeedLabel.scale.set(LABEL_SCALE);
+        feedSpeedLabel.x = 100;
+        feedSpeedLabel.y = -25;
+        feedSpeedContainer.addChild(feedSpeedLabel);
+
+        var SYMBOL_MARGIN = 5;
+
+        var feedSpeedSymbolContainer = new PIXI.Container();
+        feedSpeedContainer.addChild(feedSpeedSymbolContainer);
+          
+          for (var i = 0; i < TIME_BETWEEN_FEED_OPTIONS.length; i++) {
+             var feedSpeedSymbol = new PIXI.extras.BitmapText("+", {
+              font: "BaarGoetheanis"
+            });
+            feedSpeedSymbolContainer.addChild(feedSpeedSymbol);
+            feedSpeedSymbol.x = (feedSpeedSymbol.width + SYMBOL_MARGIN) * i
+            feedSpeedSymbol.visible = false;
+          }
+
+     feedSpeedContainer.x = 40;
+     feedSpeedContainer.y = 40;
 
       var startScreen = new PIXI.Container();
       worldContainer.addChild(startScreen);
@@ -1265,7 +1293,7 @@ var buildSceneGraph = function () {
         armsContainer: armsContainer,
         spitOutContainer: spitOutContainer,
         feedSpeedContainer: feedSpeedContainer,
-        feedSpeedText: feedSpeedText,
+        feedSpeedSymbolContainer: feedSpeedSymbolContainer,
         startScreen: startScreen,
         resultsScreen: resultsScreen,
         resultsText: resultsText
