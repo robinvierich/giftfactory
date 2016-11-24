@@ -50,7 +50,20 @@ var ASSET_PATHS = {
   },
 
   BG_MUSIC: 'audio/music/Jordan_Gladstone_-_07_-_The_Christmas_is_in_Another_Castle.mp3',
+
+  FONTS: {
+    BAAR_GOETHEANIS: 'fonts/baar_goetheanis_regular.xml',
+  }
 };
+
+var KEYS = {
+  PLATFORM1: 'ArrowUp',
+  PLATFORM2: 'ArrowLeft',
+  PLATFORM3: 'ArrowRight',
+  PLATFORM4: 'ArrowDown',
+  SPEED_UP: " ",
+  //SpeedDown: SPECIAL CASE - LEFT CLICK since one of the makey makey inputs is a click for some reason...
+}
 
 var ASSET_SCALE = 0.3;
 
@@ -72,7 +85,7 @@ var NEEDLE_ROT_MIN = -Math.PI / 2;
 var NEEDLE_ROT_MAX = Math.PI / 2;
 var MAX_SCORE = 60;
 
-var MAX_GIFTS_PER_CONVEYOR_BELT = 5;
+var MAX_GIFTS_PER_CONVEYOR_BELT = 4;
 var BAD_GIFT_CHANCE = 0.25;
 
 var g_conveyorBeltToGifts = new Map();
@@ -305,17 +318,17 @@ var getGiftTransforms = function(conveyorBelt) {
 
   var directionMultiplier = getConveyorBeltFromDirection(conveyorBelt) === LEFT ? -1 : 1;
 
-  var x1 = directionMultiplier * ((1/5) * conveyorBelt.width) * Math.cos(rotation);
-  var y1 = directionMultiplier * ((1/5) * conveyorBelt.width) * Math.sin(rotation) - conveyorBelt.height / 2;
+  var x1 = directionMultiplier * ((1/3) * conveyorBelt.width) * Math.cos(rotation);
+  var y1 = directionMultiplier * ((1/3) * conveyorBelt.width) * Math.sin(rotation) - conveyorBelt.height / 2;
 
-  var x2 = 0;
-  var y2 = -conveyorBelt.height / 2;
+  var x2 = directionMultiplier * ((0/3) * conveyorBelt.width) * Math.cos(rotation);
+  var y2 = directionMultiplier * ((0/3) * conveyorBelt.width) * Math.sin(rotation) - conveyorBelt.height / 2;
 
-  var x3 = -directionMultiplier * ((1/5) * conveyorBelt.width) * Math.cos(rotation);
-  var y3 = -directionMultiplier * ((1/5) * conveyorBelt.width) * Math.sin(rotation) - conveyorBelt.height / 2;
+  var x3 = -directionMultiplier * ((1/3) * conveyorBelt.width) * Math.cos(rotation);
+  var y3 = -directionMultiplier * ((1/3) * conveyorBelt.width) * Math.sin(rotation) - conveyorBelt.height / 2;
 
-  var x4 = -directionMultiplier * ((2/5) * conveyorBelt.width) * Math.cos(rotation);
-  var y4 = -directionMultiplier * ((2/5) * conveyorBelt.width) * Math.sin(rotation) - conveyorBelt.height / 2;
+//   var x4 = -directionMultiplier * ((2/4) * conveyorBelt.width) * Math.cos(rotation);
+//   var y4 = -directionMultiplier * ((2/4) * conveyorBelt.width) * Math.sin(rotation) - conveyorBelt.height / 2;
 
   var x5 = -10 * directionMultiplier;
   var y5 = -dropConveyorBelt.height / 2;
@@ -324,7 +337,7 @@ var getGiftTransforms = function(conveyorBelt) {
     {position: new PIXI.Point(conveyorBeltGlobalPos.x + x1, conveyorBeltGlobalPos.y + y1), rotation: conveyorBelt.rotation},
     {position: new PIXI.Point(conveyorBeltGlobalPos.x + x2, conveyorBeltGlobalPos.y + y2), rotation: conveyorBelt.rotation},
     {position: new PIXI.Point(conveyorBeltGlobalPos.x + x3, conveyorBeltGlobalPos.y + y3), rotation: conveyorBelt.rotation},
-    {position: new PIXI.Point(conveyorBeltGlobalPos.x + x4, conveyorBeltGlobalPos.y + y4), rotation: conveyorBelt.rotation},
+//     {position: new PIXI.Point(conveyorBeltGlobalPos.x + x4, conveyorBeltGlobalPos.y + y4), rotation: conveyorBelt.rotation},
     {position: new PIXI.Point(dropConveyorBeltGlobalPos.x + x5, dropConveyorBeltGlobalPos.y + y5), rotation: 0},
   ]
 };
@@ -556,11 +569,8 @@ var processKeyDown = function(dt, event, sceneIndex) {
     return;
   }
 
-  if (event.key === "ArrowUp") {
+  if (event.key === KEYS.SPEED_UP) {
     increaseFeedSpeed();
-    return;
-  } else if (event.key === "ArrowDown") {
-    decreaseFeedSpeed();
     return;
   }
 
@@ -577,12 +587,21 @@ var processKeyDown = function(dt, event, sceneIndex) {
   grabGift(giftToGrab, sceneIndex, conveyorBeltDatum.topOrBottom);
 };
 
+var processMouseDown = function(dt, event, sceneIndex) {
+  if (isInState(STATES.PLAYING)) {
+    decreaseFeedSpeed();
+  }
+};
+
 var processInput = function(dt, sceneIndex) {
   while (g_eventQueue.length) {
     var eventData = g_eventQueue.shift();
     switch (eventData.type) {
     case 'keydown':
       processKeyDown(dt, eventData.event, sceneIndex);
+      break;
+    case 'mousedown':
+      processMouseDown(dt, eventData.event, sceneIndex);
       break;
     }
   }
@@ -843,7 +862,8 @@ var update = function (dt, sceneIndex) {
 };
 
 var run = function (renderer, sceneIndex) {
-  update(getTickerDt(PIXI.ticker.shared), sceneIndex);
+  var dt = getTickerDt(PIXI.ticker.shared);
+  update(dt, sceneIndex);
   renderer.render(sceneIndex.root);
 };
 
@@ -886,8 +906,8 @@ var addConveyorBelt = function(conveyorBeltDatum, conveyorBeltTextures) {
     g_keyToConveyorBelt.set(conveyorBeltDatum.key, conveyorBelt);
 
     if (DEBUG_CONVEYOR_BELT_NUMBERS) {
-      var numberText = new PIXI.Text(conveyorBeltDatum.key.toString(), {
-        fontFamily: 'Arial', fontSize: 256, fill: 0x220000, align: 'left'
+      var numberText = new PIXI.extras.BitmapText(conveyorBeltDatum.key.toString(), {
+        font: "BaarGoetheanis"
       });
 
       numberText.x = conveyorBelt.width
@@ -985,7 +1005,7 @@ var buildSceneGraph = function () {
 
       var CONVEYOR_BELT_LEFT_X = -50;
       var DROP_CONVEYOR_BELT_LEFT_X = CONVEYOR_BELT_LEFT_X + 430;
-      var CONVEYOR_BELT_RIGHT_X = 1300;
+      var CONVEYOR_BELT_RIGHT_X = 1250;
       var DROP_CONVEYOR_BELT_RIGHT_X = CONVEYOR_BELT_RIGHT_X - 430;
 
       var CONVEYOR_BELT_DATA = [
@@ -993,7 +1013,7 @@ var buildSceneGraph = function () {
           position: { x: CONVEYOR_BELT_LEFT_X, y: CONVEYOR_BELT_TOP_Y }, rotation: CONVEYOR_BELT_ROTATION, anchor: {x: 0.5, y: 0.5}, scale: {x: ASSET_SCALE, y: ASSET_SCALE},
           fromDirection: LEFT,
           topOrBottom: TOP,
-          key: '1',
+          key: KEYS.PLATFORM1,
           dropConveyorBeltDatum: {
             position: { x: DROP_CONVEYOR_BELT_LEFT_X, y: DROP_CONVEYOR_BELT_TOP_Y }, assetPath: ASSET_PATHS.PLATFORM1, rotation: 0, anchor: {x: 0.5, y: 0.5}, scale: {x: ASSET_SCALE, y: ASSET_SCALE},
             fromDirection: LEFT,
@@ -1004,7 +1024,7 @@ var buildSceneGraph = function () {
           position: { x: CONVEYOR_BELT_LEFT_X, y: CONVEYOR_BELT_BOTTOM_Y }, rotation: CONVEYOR_BELT_ROTATION, anchor: {x: 0.5, y: 0.5}, scale: {x: ASSET_SCALE, y: ASSET_SCALE},
           fromDirection: LEFT,
           topOrBottom: BOTTOM,
-          key: '2',
+          key: KEYS.PLATFORM2,
           dropConveyorBeltDatum: {
             position: { x: DROP_CONVEYOR_BELT_LEFT_X, y: DROP_CONVEYOR_BELT_BOTTOM_Y }, assetPath: ASSET_PATHS.PLATFORM2, rotation: 0, anchor: {x: 0.5, y: 0.5}, scale: {x: ASSET_SCALE, y: ASSET_SCALE},
             fromDirection: LEFT,
@@ -1015,7 +1035,7 @@ var buildSceneGraph = function () {
           position: { x: CONVEYOR_BELT_RIGHT_X, y: CONVEYOR_BELT_TOP_Y }, rotation: -CONVEYOR_BELT_ROTATION, anchor: {x: 0.5, y: 0.5}, scale: {x: ASSET_SCALE, y: ASSET_SCALE},
           fromDirection: RIGHT,
           topOrBottom: TOP,
-          key: '3',
+          key: KEYS.PLATFORM3,
           dropConveyorBeltDatum: {
             position: { x: DROP_CONVEYOR_BELT_RIGHT_X, y: DROP_CONVEYOR_BELT_TOP_Y }, assetPath: ASSET_PATHS.PLATFORM3, rotation: 0, anchor: {x: 0.5, y: 0.5}, scale: {x: ASSET_SCALE, y: ASSET_SCALE},
             fromDirection: LEFT,
@@ -1026,7 +1046,7 @@ var buildSceneGraph = function () {
           position: { x: CONVEYOR_BELT_RIGHT_X, y: CONVEYOR_BELT_BOTTOM_Y }, rotation: -CONVEYOR_BELT_ROTATION, anchor: {x: 0.5, y: 0.5}, scale: {x: ASSET_SCALE, y: ASSET_SCALE},
           fromDirection: RIGHT,
           topOrBottom: BOTTOM,
-          key: '4',
+          key: KEYS.PLATFORM4,
           dropConveyorBeltDatum: {
             position: { x: DROP_CONVEYOR_BELT_RIGHT_X, y: DROP_CONVEYOR_BELT_BOTTOM_Y }, assetPath: ASSET_PATHS.PLATFORM4, rotation: 0, anchor: {x: 0.5, y: 0.5}, scale: {x: ASSET_SCALE, y: ASSET_SCALE},
             fromDirection: LEFT,
@@ -1079,8 +1099,8 @@ var buildSceneGraph = function () {
       stopwatchContainer.visible = false;
       worldContainer.addChild(stopwatchContainer);
 
-        var stopwatchText = new PIXI.Text(getStopwatchText(0), {
-          fontFamily: 'courier', fontSize: 60, fill: 0x220000
+        var stopwatchText = new PIXI.extras.BitmapText(getStopwatchText(0), {
+          font: "BaarGoetheanis"
         });
         stopwatchContainer.addChild(stopwatchText);
 
@@ -1098,26 +1118,28 @@ var buildSceneGraph = function () {
       var feedSpeedContainer = new PIXI.Container();
       worldContainer.addChild(feedSpeedContainer);
 
-        var feedSpeedText = new PIXI.Text("0", {
-          fontFamily: 'Arial', fontSize: 72, fill: 0x220000
+        var feedSpeedText = new PIXI.extras.BitmapText("0", {
+          font: "BaarGoetheanis"
         });
         feedSpeedContainer.addChild(feedSpeedText)
 
       var startScreen = new PIXI.Container();
       worldContainer.addChild(startScreen);
 
-        var startText = new PIXI.Text('PRESS ANY KEY TO START!', {
-          fontFamily: 'Arial', fontSize: 128, fill: 0x220000
+        var startText = new PIXI.extras.BitmapText('PRESS ANY KEY TO START!', {
+          font: 'BaarGoetheanis'
         })
         startScreen.addChild(startText);
+        //startScreen.scale(0.5)
 
       var resultsScreen = new PIXI.Container();
       resultsScreen.visible = false;
       worldContainer.addChild(resultsScreen);
 
-        var resultsText = new PIXI.Text('RESULTS GO HERE!', {
-          fontFamily: 'Arial', fontSize: 72, fill: 0x220000
+        var resultsText = new PIXI.extras.BitmapText('RESULTS GO HERE!', {
+          font: 'BaarGoetheanis'
         })
+        resultsText.scale.set(0.66);
         resultsScreen.addChild(resultsText);
 
 
@@ -1155,6 +1177,10 @@ var addKeyHandlers = function (renderer, worldContainer) {
     // push keyup event to event queue
     g_eventQueue.push({ type: 'keyup', event: e });
   });
+
+  window.addEventListener('mousedown', function(e) {
+    g_eventQueue.push({type: 'mousedown', event: e});
+  })
 };
 
 var loadAssetObject = function (loader, assetObj) {
