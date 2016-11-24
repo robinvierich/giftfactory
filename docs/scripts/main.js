@@ -72,7 +72,8 @@ var KEYS = {
   //SpeedDown: SPECIAL CASE - LEFT CLICK since one of the makey makey inputs is a click for some reason...
 }
 
-var ASSET_SCALE = 0.3;
+var ASSET_SCALE_X = 0.292;
+var ASSET_SCALE_Y = 0.30;
 
 var LEFT = 1;
 var RIGHT = 2;
@@ -414,7 +415,7 @@ var createRandomGift = function(type) {
 
   var gift = PIXI.Sprite.fromFrame(giftAsset);
   gift.anchor.set(0.5, 1);
-  gift.scale.set(ASSET_SCALE);
+  gift.scale.set(ASSET_SCALE_X, ASSET_SCALE_Y);
 
   return gift;
 };
@@ -559,7 +560,7 @@ var grabGift = function(gift, sceneIndex, topOrBottom) {
 
   var arms = PIXI.Sprite.fromFrame(ASSET_PATHS.ARMS.OPEN);
   arms.anchor.set(0.5, 1);
-  arms.scale.set(ASSET_SCALE);
+  arms.scale.set(ASSET_SCALE_X, ASSET_SCALE_Y);
   armsContainer.addChild(arms);
 
   var armStartPos = new PIXI.Point(
@@ -1058,7 +1059,7 @@ var buildSceneGraph = function () {
           snowflakesContainer.addChild(snowflakesLayer1);
 
             var snowFlakes11 = new PIXI.Sprite.fromFrame(ASSET_PATHS.BG.SNOWFLAKES1);
-            snowFlakes11.scale.set(ASSET_SCALE);
+            snowFlakes11.scale.set(ASSET_SCALE_X, ASSET_SCALE_Y);
             snowFlakes11.anchor.set(0.5, 0);
       
             var LAYER_1_Y_OFFSET = Math.abs(HEIGHT - snowFlakes11.height);
@@ -1067,7 +1068,7 @@ var buildSceneGraph = function () {
             snowflakesLayer1.addChild(snowFlakes11);
 
             var snowFlakes12 = new PIXI.Sprite.fromFrame(ASSET_PATHS.BG.SNOWFLAKES1);
-            snowFlakes12.scale.set(ASSET_SCALE);
+            snowFlakes12.scale.set(ASSET_SCALE_X, ASSET_SCALE_Y);
             snowFlakes12.anchor.set(0.5, 0);
             snowFlakes12.y = -snowFlakes12.height + LAYER_1_Y_OFFSET;
             snowflakesLayer1.addChild(snowFlakes12);
@@ -1076,7 +1077,7 @@ var buildSceneGraph = function () {
           snowflakesContainer.addChild(snowflakesLayer2);
 
             var snowFlakes21 = new PIXI.Sprite.fromFrame(ASSET_PATHS.BG.SNOWFLAKES2);
-            snowFlakes21.scale.set(ASSET_SCALE);
+            snowFlakes21.scale.set(ASSET_SCALE_X, ASSET_SCALE_Y);
             snowFlakes21.anchor.set(0.5, 0);
 
             var LAYER_2_Y_OFFSET = Math.abs(HEIGHT - snowFlakes21.height);
@@ -1084,24 +1085,24 @@ var buildSceneGraph = function () {
             snowflakesLayer2.addChild(snowFlakes21);
 
             var snowFlakes22 = new PIXI.Sprite.fromFrame(ASSET_PATHS.BG.SNOWFLAKES2);
-            snowFlakes22.scale.set(ASSET_SCALE);
+            snowFlakes22.scale.set(ASSET_SCALE_X, ASSET_SCALE_Y);
             snowFlakes22.anchor.set(0.5, 0);
             snowFlakes22.y = -snowFlakes22.height + LAYER_2_Y_OFFSET;
             snowflakesLayer2.addChild(snowFlakes22);
 
         var bgWall = new PIXI.Sprite.fromFrame(ASSET_PATHS.BG.WALL);
-        bgWall.scale.set(ASSET_SCALE);
+        bgWall.scale.set(ASSET_SCALE_X, ASSET_SCALE_Y);
         bgContainer.addChild(bgWall);
 
         var bgGarland = new PIXI.Sprite.fromFrame(ASSET_PATHS.BG.GARLAND);
         bgGarland.anchor.set(0.5, 0);
         bgGarland.x = WIDTH / 2;
-        bgGarland.scale.set(ASSET_SCALE);
+        bgGarland.scale.set(ASSET_SCALE_X, ASSET_SCALE_Y);
         bgContainer.addChild(bgGarland);
 
         var bgGifts = new PIXI.Sprite.fromFrame(ASSET_PATHS.BG.GIFTS);
         bgGifts.anchor.set(0,1);
-        bgGifts.scale.set(ASSET_SCALE);
+        bgGifts.scale.set(ASSET_SCALE_X, ASSET_SCALE_Y);
         bgGifts.y = HEIGHT;
         bgContainer.addChild(bgGifts);
 
@@ -1109,19 +1110,19 @@ var buildSceneGraph = function () {
       //bgContainer.width = WIDTH;
 
       var scaleContainer = new PIXI.Container();
-      //scaleContainer.scale.set(0.25);
-      scaleContainer.position.set(WIDTH/2, 100);
+      scaleContainer.scale.set(0.9, 0.9);
+      scaleContainer.position.set(WIDTH/2, 120);
       worldContainer.addChild(scaleContainer);
         var scale = PIXI.Sprite.fromFrame(ASSET_PATHS.SCALE);
         scale.anchor.set(0.5, 1);
         scale.y = HEIGHT;
-        scale.scale.set(ASSET_SCALE);
+        scale.scale.set(ASSET_SCALE_X, ASSET_SCALE_Y);
         scaleContainer.addChild(scale);
 
         var needle = PIXI.Sprite.fromFrame(ASSET_PATHS.NEEDLE);
         needle.anchor.set(0.5, 1);
         needle.position.set(scale.x + 5, 200);
-        needle.scale.set(ASSET_SCALE);
+        needle.scale.set(ASSET_SCALE_X, ASSET_SCALE_Y);
         needle.pivot.y = -100;
         needle.rotation = -Math.PI / 4;
         scaleContainer.addChild(needle);
@@ -1149,45 +1150,45 @@ var buildSceneGraph = function () {
 
       var CONVEYOR_BELT_DATA = [
         {
-          position: { x: CONVEYOR_BELT_LEFT_X, y: CONVEYOR_BELT_TOP_Y }, rotation: CONVEYOR_BELT_ROTATION, anchor: {x: 0.5, y: 0.5}, scale: {x: ASSET_SCALE, y: ASSET_SCALE},
+          position: { x: CONVEYOR_BELT_LEFT_X, y: CONVEYOR_BELT_TOP_Y }, rotation: CONVEYOR_BELT_ROTATION, anchor: {x: 0.5, y: 0.5}, scale: {x: ASSET_SCALE_X, y: ASSET_SCALE_Y},
           fromDirection: LEFT,
           topOrBottom: TOP,
           key: KEYS.PLATFORM1,
           dropConveyorBeltDatum: {
-            position: { x: DROP_CONVEYOR_BELT_LEFT_X, y: DROP_CONVEYOR_BELT_TOP_Y }, assetPath: ASSET_PATHS.PLATFORM1, rotation: 0, anchor: {x: 0.5, y: 0.5}, scale: {x: ASSET_SCALE, y: ASSET_SCALE},
+            position: { x: DROP_CONVEYOR_BELT_LEFT_X, y: DROP_CONVEYOR_BELT_TOP_Y }, assetPath: ASSET_PATHS.PLATFORM1, rotation: 0, anchor: {x: 0.5, y: 0.5}, scale: {x: ASSET_SCALE_X, y: ASSET_SCALE_Y},
             fromDirection: LEFT,
           }
         },
 
         {
-          position: { x: CONVEYOR_BELT_LEFT_X, y: CONVEYOR_BELT_BOTTOM_Y }, rotation: CONVEYOR_BELT_ROTATION, anchor: {x: 0.5, y: 0.5}, scale: {x: ASSET_SCALE, y: ASSET_SCALE},
+          position: { x: CONVEYOR_BELT_LEFT_X, y: CONVEYOR_BELT_BOTTOM_Y }, rotation: CONVEYOR_BELT_ROTATION, anchor: {x: 0.5, y: 0.5}, scale: {x: ASSET_SCALE_X, y: ASSET_SCALE_Y},
           fromDirection: LEFT,
           topOrBottom: BOTTOM,
           key: KEYS.PLATFORM2,
           dropConveyorBeltDatum: {
-            position: { x: DROP_CONVEYOR_BELT_LEFT_X, y: DROP_CONVEYOR_BELT_BOTTOM_Y }, assetPath: ASSET_PATHS.PLATFORM2, rotation: 0, anchor: {x: 0.5, y: 0.5}, scale: {x: ASSET_SCALE, y: ASSET_SCALE},
+            position: { x: DROP_CONVEYOR_BELT_LEFT_X, y: DROP_CONVEYOR_BELT_BOTTOM_Y }, assetPath: ASSET_PATHS.PLATFORM2, rotation: 0, anchor: {x: 0.5, y: 0.5}, scale: {x: ASSET_SCALE_X, y: ASSET_SCALE_Y},
             fromDirection: LEFT,
           }
         },
 
         {
-          position: { x: CONVEYOR_BELT_RIGHT_X, y: CONVEYOR_BELT_TOP_Y }, rotation: -CONVEYOR_BELT_ROTATION, anchor: {x: 0.5, y: 0.5}, scale: {x: ASSET_SCALE, y: ASSET_SCALE},
+          position: { x: CONVEYOR_BELT_RIGHT_X, y: CONVEYOR_BELT_TOP_Y }, rotation: -CONVEYOR_BELT_ROTATION, anchor: {x: 0.5, y: 0.5}, scale: {x: ASSET_SCALE_X, y: ASSET_SCALE_Y},
           fromDirection: RIGHT,
           topOrBottom: TOP,
           key: KEYS.PLATFORM3,
           dropConveyorBeltDatum: {
-            position: { x: DROP_CONVEYOR_BELT_RIGHT_X, y: DROP_CONVEYOR_BELT_TOP_Y }, assetPath: ASSET_PATHS.PLATFORM3, rotation: 0, anchor: {x: 0.5, y: 0.5}, scale: {x: ASSET_SCALE, y: ASSET_SCALE},
+            position: { x: DROP_CONVEYOR_BELT_RIGHT_X, y: DROP_CONVEYOR_BELT_TOP_Y }, assetPath: ASSET_PATHS.PLATFORM3, rotation: 0, anchor: {x: 0.5, y: 0.5}, scale: {x: ASSET_SCALE_X, y: ASSET_SCALE_Y},
             fromDirection: LEFT,
           }
         },
 
         {
-          position: { x: CONVEYOR_BELT_RIGHT_X, y: CONVEYOR_BELT_BOTTOM_Y }, rotation: -CONVEYOR_BELT_ROTATION, anchor: {x: 0.5, y: 0.5}, scale: {x: ASSET_SCALE, y: ASSET_SCALE},
+          position: { x: CONVEYOR_BELT_RIGHT_X, y: CONVEYOR_BELT_BOTTOM_Y }, rotation: -CONVEYOR_BELT_ROTATION, anchor: {x: 0.5, y: 0.5}, scale: {x: ASSET_SCALE_X, y: ASSET_SCALE_Y},
           fromDirection: RIGHT,
           topOrBottom: BOTTOM,
           key: KEYS.PLATFORM4,
           dropConveyorBeltDatum: {
-            position: { x: DROP_CONVEYOR_BELT_RIGHT_X, y: DROP_CONVEYOR_BELT_BOTTOM_Y }, assetPath: ASSET_PATHS.PLATFORM4, rotation: 0, anchor: {x: 0.5, y: 0.5}, scale: {x: ASSET_SCALE, y: ASSET_SCALE},
+            position: { x: DROP_CONVEYOR_BELT_RIGHT_X, y: DROP_CONVEYOR_BELT_BOTTOM_Y }, assetPath: ASSET_PATHS.PLATFORM4, rotation: 0, anchor: {x: 0.5, y: 0.5}, scale: {x: ASSET_SCALE_X, y: ASSET_SCALE_Y},
             fromDirection: LEFT,
           }
         },
@@ -1201,7 +1202,7 @@ var buildSceneGraph = function () {
         var dropConveyorBeltDatum = conveyorBeltDatum.dropConveyorBeltDatum;
         var spotlight = PIXI.Sprite.fromFrame(ASSET_PATHS.SPOTLIGHT);
         spotlight.anchor.set(0.5);
-        spotlight.scale.set(ASSET_SCALE);
+        spotlight.scale.set(ASSET_SCALE_X, ASSET_SCALE_Y);
         spotlight.position.set(
           dropConveyorBeltDatum.position.x,
           dropConveyorBeltDatum.position.y - spotlight.height / 2
@@ -1231,7 +1232,7 @@ var buildSceneGraph = function () {
       sack.anchor.set(0.5, 1);
       sack.x = WIDTH / 2;
       sack.y = HEIGHT + 100;
-      sack.scale.set(ASSET_SCALE);
+      sack.scale.set(ASSET_SCALE_X, ASSET_SCALE_Y);
       worldContainer.addChild(sack);
 
       var giftGrabContainer = new PIXI.Container();
