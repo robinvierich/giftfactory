@@ -773,17 +773,20 @@ var updateStopwatch = function(sceneIndex, roundStartTime) {
 //   g_timeBetweenFeeds = timeBetweenFeeds;
 // };
 
+var ENABLED_TINT = 0xFFFFFF;
+var DISABLED_TINT = 0x222222;
+
 var updateFeedSpeed = function(sceneIndex) {
   var feedSpeed = (g_selectedTimeBetweenFeedIndex + 1);
 
   for (var i = 0; i < feedSpeed; i++) {
     var symbol = sceneIndex.feedSpeedSymbolContainer.children[i];
-    symbol.visible = true;
+    symbol.tint = ENABLED_TINT;
   }
 
   for (var i = feedSpeed; i < TIME_BETWEEN_FEED_OPTIONS.length; i++) {
     var symbol = sceneIndex.feedSpeedSymbolContainer.children[i];
-    symbol.visible = false;
+    symbol.tint = DISABLED_TINT;
   }
 }
 
@@ -1248,7 +1251,7 @@ var buildSceneGraph = function () {
             });
             feedSpeedSymbolContainer.addChild(feedSpeedSymbol);
             feedSpeedSymbol.x = (feedSpeedSymbol.width + SYMBOL_MARGIN) * i
-            feedSpeedSymbol.visible = false;
+            feedSpeedSymbol.tint = DISABLED_TINT;
           }
 
      feedSpeedContainer.x = 40;
