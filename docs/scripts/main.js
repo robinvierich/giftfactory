@@ -1,5 +1,6 @@
 var DEBUG_CONVEYOR_BELT_NUMBERS = true;
 
+
 var ASSET_PATHS = {
   BG: {
     SKY: 'images/bg-sky-colour141721.png',
@@ -59,8 +60,6 @@ var ASSET_PATHS = {
     BAAR_GOETHEANIS: 'fonts/baar_goetheanis_regular.xml',
   }
 };
-
-
 
 var KEYS = {
   PLATFORM1: 'ArrowUp',
@@ -1479,6 +1478,21 @@ var loadAssetObject = function (loader, assetObj) {
   }
 }
 
+var showLoadingText = function(renderer) {
+  var loader = new PIXI.loaders.Loader();
+
+  var loadingText = new PIXI.Text('Loading', {
+    font: 'Arial',
+    fill: 0xFFFFFF,
+    fontSize: 72
+  });
+
+  loadingText.x = WIDTH / 2 - loadingText.width / 2;
+  loadingText.y = HEIGHT / 2 - loadingText.height / 2;
+
+  renderer.render(loadingText);
+}
+
 var load = function () {
   return new Promise(function (resolve, reject) {
     var loader = new PIXI.loaders.Loader();
@@ -1507,6 +1521,8 @@ var init = function () {
   });
 
   renderer.backgroundColor = 0x141721;
+
+  showLoadingText(renderer);
 
   load()
   .then(function () {
