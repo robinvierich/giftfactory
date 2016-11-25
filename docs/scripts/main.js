@@ -19,7 +19,7 @@ var ASSET_PATHS = {
 
   SPOTLIGHT: 'images/platform-halo.png',
 
-  SPEED_SYMBOL: 'images/speed-symbol.png',
+  SPEED_SYMBOL: 'images/speed-symbol-wstroke.png',
 
   GIFTS: [
     'images/item-gift1-xmas.png',
@@ -942,6 +942,8 @@ var updateFeedSpeed = function(sceneIndex) {
     var symbol = sceneIndex.feedSpeedSymbolContainer.children[i];
     symbol.tint = DISABLED_TINT;
   }
+
+  sceneIndex.feedSpeedSymbolContainer.visible = isInState(STATES.PLAYING);
 }
 
 var SNOWFLAKES_Y_SPEED_PER_LAYER = [300, 200];
@@ -1392,8 +1394,85 @@ var buildSceneGraph = function () {
         bgGifts.y = HEIGHT;
         bgContainer.addChild(bgGifts);
 
-      //bgContainer.height = HEIGHT;
-      //bgContainer.width = WIDTH;
+      var LABEL_SCALE = 0.35;
+
+      var stopwatchContainer = new PIXI.Container();
+      worldContainer.addChild(stopwatchContainer);
+
+        var stopwatchLabel =  createTextContainerWithOutline('TIME', {
+          font: "BaarGoetheanis"
+        });
+        stopwatchLabel.scale.set(LABEL_SCALE);
+        stopwatchContainer.addChild(stopwatchLabel);
+
+        var stopwatchMinutesText = createTextContainerWithOutline('', {
+          font: "BaarGoetheanis"
+        });
+        stopwatchContainer.addChild(stopwatchMinutesText);
+
+//         var stopwatchMinutesSeperatorText = new PIXI.extras.BitmapText(':', {
+//           font: "BaarGoetheanis"
+//         });
+//         stopwatchMinutesSeperatorText.x = stopwatchMinutesText.x + stopwatchMinutesText.width;
+//         stopwatchContainer.addChild(stopwatchMinutesSeperatorText);
+
+        var stopwatchSecondsText = createTextContainerWithOutline(getStopwatchSecondsText(0), {
+          font: "BaarGoetheanis"
+        });
+        stopwatchSecondsText.x = stopwatchMinutesText.x + stopwatchMinutesText.width + 10;
+        stopwatchContainer.addChild(stopwatchSecondsText);
+
+        var stopwatchSecondsSeperatorText = createTextContainerWithOutline(':', {
+          font: "BaarGoetheanis"
+        });
+        stopwatchSecondsSeperatorText.x = stopwatchSecondsText.x + stopwatchSecondsText.width;
+        stopwatchSecondsSeperatorText.scale.set(0.5);
+        stopwatchSecondsSeperatorText.y = stopwatchSecondsText.height - stopwatchSecondsSeperatorText.height;
+        stopwatchContainer.addChild(stopwatchSecondsSeperatorText);
+
+        var stopwatchMillisecondsText = createTextContainerWithOutline(getStopwatchMillisecondsText(0), {
+          font: "BaarGoetheanis"
+        });
+        stopwatchMillisecondsText.scale.set(0.5);
+        stopwatchMillisecondsText.x = stopwatchSecondsSeperatorText.x + stopwatchSecondsSeperatorText.width + 10;
+        stopwatchMillisecondsText.y = stopwatchSecondsSeperatorText.y;
+        
+        stopwatchContainer.addChild(stopwatchMillisecondsText);
+
+
+        stopwatchLabel.position.set(stopwatchContainer.width / 2 - stopwatchLabel.width, -25)
+      
+      stopwatchContainer.y = 40; 
+      stopwatchContainer.x = (WIDTH - stopwatchContainer.width - 10);
+      stopwatchContainer.visible = false;
+         
+
+      var feedSpeedContainer = new PIXI.Container();
+      worldContainer.addChild(feedSpeedContainer);
+
+        var feedSpeedLabel = createTextContainerWithOutline("SPEED", {
+          font: "BaarGoetheanis"
+        });
+        feedSpeedLabel.scale.set(LABEL_SCALE);
+        feedSpeedLabel.x = 100;
+        feedSpeedLabel.y = -45;
+        feedSpeedContainer.addChild(feedSpeedLabel);
+
+        var SYMBOL_MARGIN = 5;
+
+        var feedSpeedSymbolContainer = new PIXI.Container();
+        feedSpeedContainer.addChild(feedSpeedSymbolContainer);
+          
+          for (var i = 0; i < TIME_BETWEEN_FEED_OPTIONS.length; i++) {
+             var feedSpeedSymbol = PIXI.Sprite.fromFrame(ASSET_PATHS.SPEED_SYMBOL);
+            feedSpeedSymbolContainer.addChild(feedSpeedSymbol);
+            feedSpeedSymbol.x = (feedSpeedSymbol.width + SYMBOL_MARGIN) * i
+            feedSpeedSymbol.tint = DISABLED_TINT;
+          }
+
+     feedSpeedContainer.x = 40;
+     feedSpeedContainer.y = 60;
+
 
       var scaleContainer = new PIXI.Container();
       scaleContainer.scale.set(0.9, 0.9);
@@ -1539,84 +1618,7 @@ var buildSceneGraph = function () {
       worldContainer.addChild(armsContainer);
 
 
-      var LABEL_SCALE = 0.35;
-
-      var stopwatchContainer = new PIXI.Container();
-      worldContainer.addChild(stopwatchContainer);
-
-        var stopwatchLabel =  createTextContainerWithOutline('TIME', {
-          font: "BaarGoetheanis"
-        });
-        stopwatchLabel.scale.set(LABEL_SCALE);
-        stopwatchContainer.addChild(stopwatchLabel);
-
-        var stopwatchMinutesText = createTextContainerWithOutline('', {
-          font: "BaarGoetheanis"
-        });
-        stopwatchContainer.addChild(stopwatchMinutesText);
-
-//         var stopwatchMinutesSeperatorText = new PIXI.extras.BitmapText(':', {
-//           font: "BaarGoetheanis"
-//         });
-//         stopwatchMinutesSeperatorText.x = stopwatchMinutesText.x + stopwatchMinutesText.width;
-//         stopwatchContainer.addChild(stopwatchMinutesSeperatorText);
-
-        var stopwatchSecondsText = createTextContainerWithOutline(getStopwatchSecondsText(0), {
-          font: "BaarGoetheanis"
-        });
-        stopwatchSecondsText.x = stopwatchMinutesText.x + stopwatchMinutesText.width + 10;
-        stopwatchContainer.addChild(stopwatchSecondsText);
-
-        var stopwatchSecondsSeperatorText = createTextContainerWithOutline(':', {
-          font: "BaarGoetheanis"
-        });
-        stopwatchSecondsSeperatorText.x = stopwatchSecondsText.x + stopwatchSecondsText.width;
-        stopwatchSecondsSeperatorText.scale.set(0.5);
-        stopwatchSecondsSeperatorText.y = stopwatchSecondsText.height - stopwatchSecondsSeperatorText.height;
-        stopwatchContainer.addChild(stopwatchSecondsSeperatorText);
-
-        var stopwatchMillisecondsText = createTextContainerWithOutline(getStopwatchMillisecondsText(0), {
-          font: "BaarGoetheanis"
-        });
-        stopwatchMillisecondsText.scale.set(0.5);
-        stopwatchMillisecondsText.x = stopwatchSecondsSeperatorText.x + stopwatchSecondsSeperatorText.width + 10;
-        stopwatchMillisecondsText.y = stopwatchSecondsSeperatorText.y;
-        
-        stopwatchContainer.addChild(stopwatchMillisecondsText);
-
-
-        stopwatchLabel.position.set(stopwatchContainer.width / 2 - stopwatchLabel.width, -25)
-      
-      stopwatchContainer.y = 40; 
-      stopwatchContainer.x = (WIDTH - stopwatchContainer.width - 10);
-      stopwatchContainer.visible = false;
-         
-
-      var feedSpeedContainer = new PIXI.Container();
-      worldContainer.addChild(feedSpeedContainer);
-
-        var feedSpeedLabel = createTextContainerWithOutline("SPEED", {
-          font: "BaarGoetheanis"
-        });
-        feedSpeedLabel.scale.set(LABEL_SCALE);
-        feedSpeedLabel.x = 100;
-        feedSpeedLabel.y = -25;
-        feedSpeedContainer.addChild(feedSpeedLabel);
-
-        var SYMBOL_MARGIN = 5;
-
-        var feedSpeedSymbolContainer = new PIXI.Container();
-        feedSpeedContainer.addChild(feedSpeedSymbolContainer);
-          
-          for (var i = 0; i < TIME_BETWEEN_FEED_OPTIONS.length; i++) {
-             var feedSpeedSymbol = PIXI.Sprite.fromFrame(ASSET_PATHS.SPEED_SYMBOL);
-            feedSpeedSymbolContainer.addChild(feedSpeedSymbol);
-            feedSpeedSymbol.x = (feedSpeedSymbol.width + SYMBOL_MARGIN) * i
-            feedSpeedSymbol.tint = DISABLED_TINT;
-          }
-
-     feedSpeedContainer.x = 40;
-     feedSpeedContainer.y = 40;
+     
 
       var startScreen = new PIXI.Container();
       worldContainer.addChild(startScreen);
