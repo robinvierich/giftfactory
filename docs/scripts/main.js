@@ -370,6 +370,9 @@ var getGiftStartPosition = function(gift, conveyorBelt) {
   return new PIXI.Point(x, y);
 };
 
+var GIFT_BELT_Y_OFFSET = 6;
+var GIFT_PLATFORM_Y_OFFSET = 4;
+
 var getGiftTransforms = function(conveyorBelt) {
   var dropConveyorBelt = getDropConveyorBelt(conveyorBelt);
 
@@ -381,19 +384,19 @@ var getGiftTransforms = function(conveyorBelt) {
   var directionMultiplier = getConveyorBeltFromDirection(conveyorBelt) === LEFT ? -1 : 1;
 
   var x1 = directionMultiplier * ((1/3) * conveyorBelt.width) * Math.cos(rotation);
-  var y1 = directionMultiplier * ((1/3) * conveyorBelt.width) * Math.sin(rotation) - conveyorBelt.height / 2;
+  var y1 = directionMultiplier * ((1/3) * conveyorBelt.width) * Math.sin(rotation) - conveyorBelt.height / 2 + GIFT_BELT_Y_OFFSET;
 
   var x2 = directionMultiplier * ((0/3) * conveyorBelt.width) * Math.cos(rotation);
-  var y2 = directionMultiplier * ((0/3) * conveyorBelt.width) * Math.sin(rotation) - conveyorBelt.height / 2;
+  var y2 = directionMultiplier * ((0/3) * conveyorBelt.width) * Math.sin(rotation) - conveyorBelt.height / 2 + GIFT_BELT_Y_OFFSET;
 
   var x3 = -directionMultiplier * ((1/3) * conveyorBelt.width) * Math.cos(rotation);
-  var y3 = -directionMultiplier * ((1/3) * conveyorBelt.width) * Math.sin(rotation) - conveyorBelt.height / 2;
+  var y3 = -directionMultiplier * ((1/3) * conveyorBelt.width) * Math.sin(rotation) - conveyorBelt.height / 2 + GIFT_BELT_Y_OFFSET;
 
 //   var x4 = -directionMultiplier * ((2/4) * conveyorBelt.width) * Math.cos(rotation);
 //   var y4 = -directionMultiplier * ((2/4) * conveyorBelt.width) * Math.sin(rotation) - conveyorBelt.height / 2;
 
-  var x5 = -10 * directionMultiplier;
-  var y5 = -dropConveyorBelt.height / 2;
+  var x5 = -0 * directionMultiplier;
+  var y5 = -dropConveyorBelt.height / 2 + GIFT_PLATFORM_Y_OFFSET;
 
   return [
     {position: new PIXI.Point(conveyorBeltGlobalPos.x + x1, conveyorBeltGlobalPos.y + y1), rotation: conveyorBelt.rotation},
