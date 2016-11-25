@@ -7,7 +7,7 @@ var ASSET_PATHS = {
     SNOWFLAKES1: 'images/bg-snowflakes1.png',
     SNOWFLAKES2: 'images/bg-snowflakes2.png',
     WALL: 'images/bg-wall.png',
-    GARLAND: 'images/bg-garland.png',
+    GARLAND_FRAMES: ['images/bg-garland1.png', 'images/bg-garland2.png', 'images/bg-garland3.png', 'images/bg-garland4.png'],
     GIFTS: 'images/bg-gifts.png',
   },
   
@@ -24,7 +24,16 @@ var ASSET_PATHS = {
   GIFTS: [
     'images/item-gift1-xmas.png',
     'images/item-gift2-xmas.png',
-    'images/item-gift3-xmas.png'
+    'images/item-gift3-xmas.png',
+    'images/item-gift4-xmas.png',
+    'images/item-gift5-xmas.png',
+    'images/item-gift6-xmas.png',
+    'images/item-gift7-xmas.png',
+    'images/item-gift8-xmas.png',
+    'images/item-gift9-xmas.png',
+    'images/item-gift10-xmas.png',
+    'images/item-gift11-xmas.png',
+    'images/item-gift12-xmas.png'
   ],
   
   BAD_GIFTS: [
@@ -33,7 +42,10 @@ var ASSET_PATHS = {
     'images/item-heart.png',
     'images/item-potOfGold.png',
     'images/item-pumpkin.png',
-    'images/item-turkey.png'
+    'images/item-turkey.png',
+    'images/item-hat.png',
+    'images/item-flamingo.png',
+    'images/item-flowers.png'
   ],
   
   SACK: {
@@ -1400,10 +1412,13 @@ var buildSceneGraph = function () {
         bgWall.scale.set(ASSET_SCALE_X, ASSET_SCALE_Y);
         bgContainer.addChild(bgWall);
 
-        var bgGarland = new PIXI.Sprite.fromFrame(ASSET_PATHS.BG.GARLAND);
+        var bgGarland = new PIXI.extras.MovieClip.fromFrames(ASSET_PATHS.BG.GARLAND_FRAMES);
         bgGarland.anchor.set(0.5, 0);
         bgGarland.x = WIDTH / 2;
         bgGarland.scale.set(ASSET_SCALE_X, ASSET_SCALE_Y);
+        bgGarland.animationSpeed = 0.03;
+        bgGarland.loop = true;
+        bgGarland.play();
         bgContainer.addChild(bgGarland);
 
         var bgGifts = new PIXI.Sprite.fromFrame(ASSET_PATHS.BG.GIFTS);
