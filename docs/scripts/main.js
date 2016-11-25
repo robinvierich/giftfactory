@@ -738,10 +738,10 @@ var processKeyDown = function(dt, event, sceneIndex) {
   }
 
 // --------- FOR TESTING ONLY --------- 
-  if (isInState(STATES.PLAYING)) {
-    transitionToState(STATES.GET_NAME, sceneIndex);
-    return;
-  }
+//   if (isInState(STATES.PLAYING)) {
+//     transitionToState(STATES.GET_NAME, sceneIndex);
+//     return;
+//   }
 
   if (event.key === KEYS.SPEED_UP) {
     increaseFeedSpeed();
