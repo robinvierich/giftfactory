@@ -10,7 +10,7 @@ var ASSET_PATHS = {
     GIFTS: 'images/bg-gifts.png',
   },
   
-  CONVEYOR_BELT_FRAMES: ['images/conveyorBelt.png'], //, 'images/conveyor-belt2.png', 'images/conveyor-belt3.png', 'images/conveyor-belt4.png'],
+  CONVEYOR_BELT_FRAMES: ['images/conveyerBelt1.png', 'images/conveyerBelt2.png', 'images/conveyerBelt3.png', 'images/conveyerBelt4.png'],
   PLATFORM1: 'images/platform1.png',
   PLATFORM2: 'images/platform2.png',
   PLATFORM3: 'images/platform3.png',
@@ -34,9 +34,8 @@ var ASSET_PATHS = {
   ],
   
   SACK: {
-    OPEN: 'images/bag-open.png',
+    SPIT_ANIM_FRAMES: ['images/bag-1.png', 'images/bag-2.png', 'images/bag-3.png', 'images/bag-4-6.png', 'images/bag-5-7.png', 'images/bag-8.png', 'images/bag-9.png'],
     CLOSED: 'images/bag-closed.png',
-    SPIT: 'images/bag-spit.png',
   },
 
   SCALE: 'images/scale-pole.png',
@@ -72,8 +71,8 @@ var KEYS = {
   //SpeedDown: SPECIAL CASE - LEFT CLICK since one of the makey makey inputs is a click for some reason...
 }
 
-var ASSET_SCALE_X = 0.292;
-var ASSET_SCALE_Y = 0.30;
+var ASSET_SCALE_X = 0.885; 
+var ASSET_SCALE_Y = 0.885;
 
 var LEFT = 1;
 var RIGHT = 2;
@@ -763,7 +762,7 @@ var spitOutGifts = function(count, badGift, sceneIndex) {
 
   spitOutContainer.addChild(badGift);
 
-  sack.texture = PIXI.utils.TextureCache[ASSET_PATHS.SACK.SPIT];
+  sack.gotoAndPlay(0);
 
   var startPos = new PIXI.Point(sack.x, sack.y + sack.height);
   var endPositions = [];
@@ -787,10 +786,10 @@ var spitOutGifts = function(count, badGift, sceneIndex) {
   var beziers = endPositions.map(function(endPos) {
     return new Bezier(
       startPos.x, startPos.y,
-      startPos.x, startPos.y - 1000,
+      startPos.x, startPos.y - 1500,
       //startPos.x + directionMultiplier * 100, startPos.y,
       // endPos.x - directionMultiplier * 10, endPos.y - 200,
-      endPos.x, endPos.y - 1000,
+      endPos.x, endPos.y - 1500,
       endPos.x, endPos.y
     );
   });
@@ -820,11 +819,11 @@ var spitOutGifts = function(count, badGift, sceneIndex) {
 
   startTween(removeGiftsTween);
 
-  var openSackTween = createTimerTween(SPIT_DURATION, function(tween) {
-    sack.texture = PIXI.utils.TextureCache[ASSET_PATHS.SACK.OPEN];
-  });
+//   var openSackTween = createTimerTween(ASSET_PATHS.SACK.SPIT_ANIM_FRAMES / FPS, function(tween) {
+//     sack.gotoAndStop(0);
+//   });
 
-  startTween(openSackTween);
+//   startTween(openSackTween);
 };
 
 var checkForSackCollision = function(dt, sceneIndex) {
@@ -1028,7 +1027,7 @@ var update_PLAYING = function(dt, sceneIndex) {
 
   checkForSackCollision(dt, sceneIndex);
 
-  updateSnowflakes(dt, sceneIndex);
+  updateSnowflakes(dt, sceneIndex);  
 }
 
 var update = function (dt, sceneIndex) {
@@ -1065,7 +1064,7 @@ var startRound = function(sceneIndex) {
   g_score = 0;
   g_selectedTimeBetweenFeedIndex = 0;
   g_playerBestTimeEntry = null;
-  sceneIndex.sack.texture = PIXI.utils.TextureCache[ASSET_PATHS.SACK.OPEN];
+  sceneIndex.sack.gotoAndStop(0);
   clearGifts(sceneIndex.giftContainer);
 }
 
@@ -1098,10 +1097,11 @@ var addConveyorBelt = function(conveyorBeltDatum, conveyorBeltTextures) {
         font: "BaarGoetheanis"
       });
 
-      numberText.x = conveyorBelt.width
+      numberText.x = conveyorBelt.width / 2
       numberText.y = conveyorBelt.height
 
-      numberText.scale.x = directionMultiplier;
+      numberText.scale.x = directionMultiplier / 2;
+      numberText.scale.y = 1 / 2
 
       conveyorBelt.addChild(numberText);
     }
@@ -1193,7 +1193,7 @@ var buildSceneGraph = function () {
         needle.anchor.set(0.5, 1);
         needle.position.set(scale.x + 5, 200);
         needle.scale.set(ASSET_SCALE_X, ASSET_SCALE_Y);
-        needle.pivot.y = -100;
+        needle.pivot.y = -45;
         needle.rotation = -Math.PI / 4;
         scaleContainer.addChild(needle);
 
@@ -1210,12 +1210,12 @@ var buildSceneGraph = function () {
 
       var CONVEYOR_BELT_TOP_Y = 20;
       var DROP_CONVEYOR_BELT_TOP_Y = CONVEYOR_BELT_TOP_Y + 140;
-      var CONVEYOR_BELT_BOTTOM_Y = 270;
+      var CONVEYOR_BELT_BOTTOM_Y = CONVEYOR_BELT_TOP_Y + 270;
       var DROP_CONVEYOR_BELT_BOTTOM_Y = CONVEYOR_BELT_BOTTOM_Y + 140;
 
-      var CONVEYOR_BELT_LEFT_X = -50;
+      var CONVEYOR_BELT_LEFT_X = -150;
       var DROP_CONVEYOR_BELT_LEFT_X = CONVEYOR_BELT_LEFT_X + 430;
-      var CONVEYOR_BELT_RIGHT_X = 1250;
+      var CONVEYOR_BELT_RIGHT_X = CONVEYOR_BELT_LEFT_X + 1500;
       var DROP_CONVEYOR_BELT_RIGHT_X = CONVEYOR_BELT_RIGHT_X - 430;
 
       var CONVEYOR_BELT_DATA = [
@@ -1298,12 +1298,23 @@ var buildSceneGraph = function () {
       var spitOutContainer = new PIXI.Container();
       worldContainer.addChild(spitOutContainer);
 
-      var sack = PIXI.Sprite.fromFrame(ASSET_PATHS.SACK.OPEN);
+      var sack = PIXI.extras.MovieClip.fromFrames(ASSET_PATHS.SACK.SPIT_ANIM_FRAMES);
+      sack.loop = false;
+      sack.animationSpeed = 0.5;
       sack.anchor.set(0.5, 1);
       sack.x = WIDTH / 2;
-      sack.y = HEIGHT + 100;
+      sack.y = HEIGHT + 150;
       sack.scale.set(ASSET_SCALE_X, ASSET_SCALE_Y);
       worldContainer.addChild(sack);
+
+
+      var closedSack = PIXI.Sprite.fromFrame(ASSET_PATHS.SACK.CLOSED);
+      closedSack.anchor = sack.anchor;
+      closedSack.position = sack.position;
+      closedSack.scale = sack.scale;
+      closedSack.visible = false;
+      worldContainer.addChild(closedSack);
+
 
       var giftGrabContainer = new PIXI.Container();
       worldContainer.addChild(giftGrabContainer);
@@ -1424,6 +1435,7 @@ var buildSceneGraph = function () {
         allConveyorBeltsContainer: allConveyorBeltsContainer,
         giftContainer: giftContainer,
         sack: sack,
+        closedSack: closedSack,
         stopwatchContainer: stopwatchContainer,
         stopwatchMinutesText: stopwatchMinutesText,
         stopwatchSecondsText: stopwatchSecondsText,
@@ -1518,6 +1530,10 @@ var STATE_TRANSITIONS = {
   STARTING: {
     enter: function(sceneIndex) {
       sceneIndex.startScreen.visible = true;
+
+      sceneIndex.sack.visible = true;
+      sceneIndex.sack.gotoAndStop(0);
+      sceneIndex.closedSack.visible = false;
     },
     exit: function(sceneIndex) {
       sceneIndex.startScreen.visible = false;
@@ -1534,7 +1550,8 @@ var STATE_TRANSITIONS = {
     enter: function(sceneIndex) {
       sceneIndex.resultsScreen.visible = true;
 
-      sceneIndex.sack.texture = PIXI.utils.TextureCache[ASSET_PATHS.SACK.CLOSED];
+      sceneIndex.sack.visible = false;
+      sceneIndex.closedSack.visible = true;
 
       g_roundEndTime = Date.now()
 
