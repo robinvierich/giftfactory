@@ -726,10 +726,10 @@ var processKeyDown = function(dt, event, sceneIndex) {
   }
 
 // --------- FOR TESTING ONLY --------- 
-  if (isInState(STATES.PLAYING)) {
-    transitionToState(STATES.GET_NAME, sceneIndex);
-    return;
-  }
+//   if (isInState(STATES.PLAYING)) {
+//     transitionToState(STATES.GET_NAME, sceneIndex);
+//     return;
+//   }
 
   if (event.key === KEYS.SPEED_UP) {
     increaseFeedSpeed();
@@ -1806,6 +1806,8 @@ var showLoadingText = function(renderer) {
   loadingText.y = HEIGHT / 2 - loadingText.height / 2;
 
   renderer.render(loadingText);
+
+  return loadingText;
 }
 
 var load = function () {
@@ -1837,7 +1839,7 @@ var init = function () {
 
   renderer.backgroundColor = 0x141721;
 
-  showLoadingText(renderer);
+  var loadingText = showLoadingText(renderer);
 
   load()
   .then(function () {
@@ -1854,6 +1856,9 @@ var init = function () {
   .catch(function (e) {
     window.console.error('error loading resources!');
     window.console.error(e);
+
+    loadingText.text = "Oops! Something went wrong!"
+    renderer.render(loadingText);
   })
 };
 
