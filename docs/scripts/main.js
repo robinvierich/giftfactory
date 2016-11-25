@@ -64,7 +64,7 @@ var ASSET_PATHS = {
   },
 
   RESULTS: {
-    CONGRATULATIONS: 'images/congratulations.png',
+    CONGRATULATIONS_FRAMES: ['images/congratulations1.png', 'images/congratulations2.png', 'images/congratulations3.png'],
     SCROLL: 'images/scroll-full.png',
     BADGE: 'images/elf-badge.png',
     LIST_DIVIDER: 'images/result-list-divider.png',
@@ -738,10 +738,10 @@ var processKeyDown = function(dt, event, sceneIndex) {
   }
 
 // --------- FOR TESTING ONLY --------- 
-//   if (isInState(STATES.PLAYING)) {
-//     transitionToState(STATES.GET_NAME, sceneIndex);
-//     return;
-//   }
+  if (isInState(STATES.PLAYING)) {
+    transitionToState(STATES.GET_NAME, sceneIndex);
+    return;
+  }
 
   if (event.key === KEYS.SPEED_UP) {
     increaseFeedSpeed();
@@ -1691,10 +1691,13 @@ var buildSceneGraph = function () {
         resultsBg.position.set(WIDTH / 2 - resultsBg.width / 2, HEIGHT / 2 - resultsBg.height / 2);
         resultsScreen.addChild(resultsBg);
 
-        var congratulations = PIXI.Sprite.fromFrame(ASSET_PATHS.RESULTS.CONGRATULATIONS);
+        var congratulations = PIXI.extras.MovieClip.fromFrames(ASSET_PATHS.RESULTS.CONGRATULATIONS_FRAMES);
         congratulations.anchor.set(0.5, 0.5);
         congratulations.x = WIDTH/2;
         congratulations.y = 150;
+        congratulations.animationSpeed = 0.06;
+        congratulations.loop = true;
+        congratulations.play()
         resultsScreen.addChild(congratulations);
 
           var resultsBadge = PIXI.Sprite.fromFrame(ASSET_PATHS.RESULTS.BADGE);
