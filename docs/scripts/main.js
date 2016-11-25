@@ -1624,6 +1624,8 @@ var buildSceneGraph = function () {
         var startText = createTextContainerWithOutline('PRESS ANY KEY TO START!', {
           font: 'BaarGoetheanis'
         })
+        startText.x = (WIDTH - startText.width) / 2 ;
+        startText.y = (HEIGHT - startText.height) / 2;
         startScreen.addChild(startText);
         //startScreen.scale(0.5)
 
