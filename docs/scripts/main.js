@@ -80,6 +80,7 @@ var KEYS = {
   PLATFORM4: 'ArrowDown',
   SPEED_UP: " ",
   //SpeedDown: SPECIAL CASE - LEFT CLICK since one of the makey makey inputs is a click for some reason...
+  GET_NAME_CONFIRM_KEY: 'Enter'
 }
 
 var ASSET_SCALE_X = 0.885; 
@@ -142,6 +143,8 @@ var g_roundEndTime = null;
 
 var g_resultsVisibleTime = null;
 
+var g_name = "TOP ELF";
+
 // {name: 'name', score: 0}
 var g_bestTimes = [];
 var g_playerBestTimeEntry = null;
@@ -150,6 +153,7 @@ var NUM_BEST_TIMES_TO_STORE = Infinity;
 var STATES = {
   STARTING: 'STARTING',
   PLAYING: 'PLAYING',
+  GET_NAME: 'GET_NAME',
   FINISHED: 'FINISHED'
 };
 
@@ -713,9 +717,17 @@ var processKeyDown = function(dt, event, sceneIndex) {
     return;
   }
 
+  if (isInState(STATES.GET_NAME)) {
+    if (event.key == KEYS.GET_NAME_CONFIRM_KEY) {
+      transitionToState(STATES.FINISHED, sceneIndex);
+    }
+
+    return;
+  }
+
 // --------- FOR TESTING ONLY --------- 
 //   if (isInState(STATES.PLAYING)) {
-//     transitionToState(STATES.FINISHED, sceneIndex);
+//     transitionToState(STATES.GET_NAME, sceneIndex);
 //     return;
 //   }
 
@@ -1177,10 +1189,6 @@ var updateResultsScreen = function(dt, sceneIndex, bestTimes, roundTime, playerB
   }
 }
 
-var askForPlayerName = function() {
-  return window.prompt('What is your name?', 'Top Elf');
-}
-
 var showFinishScreen = function(sceneIndex, bestTimes, roundTime, playerBestTimeEntry) {
   
 };
@@ -1189,7 +1197,7 @@ var finishGame = function(sceneIndex, bestTimes, roundTime) {
   var playerBestTimeEntry = null;
 
   //if (isNewBestTime(bestTimes, roundTime)) {
-  var playerName = askForPlayerName();
+  var playerName = g_name;
   var playerBestTimeEntry = updateBestTimes(bestTimes, roundTime, playerName);
   saveBestTimes(bestTimes);
   //}
@@ -1216,6 +1224,12 @@ var update_STARTING = function(dt, sceneIndex) {
   updateSnowflakes(dt, sceneIndex);
 }
 
+var update_GET_NAME = function(dt, sceneIndex) {  
+  processInput(dt, sceneIndex);
+  updateTweens(dt);
+  updateSnowflakes(dt, sceneIndex);
+};
+
 var update_FINISHED = function(dt, sceneIndex) {
   var roundTime = g_roundEndTime - g_roundStartTime;
 
@@ -1229,7 +1243,7 @@ var update_FINISHED = function(dt, sceneIndex) {
 
 var update_PLAYING = function(dt, sceneIndex) {
   if (checkForWin()) {
-    transitionToState(STATES.FINISHED, sceneIndex);
+    transitionToState(STATES.GET_NAME, sceneIndex);
   }
 
   processInput(dt, sceneIndex);
@@ -1255,6 +1269,10 @@ var update = function (dt, sceneIndex) {
 
   if (isInState(STATES.PLAYING)) {
     return update_PLAYING(dt, sceneIndex);
+  }
+
+  if (isInState(STATES.GET_NAME)) {
+    return update_GET_NAME(dt, sceneIndex);
   }
 
   if (isInState(STATES.FINISHED)) { 
@@ -1630,6 +1648,24 @@ var buildSceneGraph = function () {
         startText.y = (HEIGHT - startText.height) / 2;
         startScreen.addChild(startText);
         //startScreen.scale(0.5)
+       
+      var nameInputScreen = new PIXI.Container();
+      nameInputScreen.visible = false;
+      worldContainer.addChild(nameInputScreen);
+
+        var nameInputBg = PIXI.Sprite.fromFrame(ASSET_PATHS.RESULTS.SCROLL)
+        nameInputBg.scale.set(ASSET_SCALE_X, ASSET_SCALE_Y);
+        nameInputBg.position.set(WIDTH / 2 - nameInputBg.width / 2, HEIGHT / 2 - nameInputBg.height / 2);
+        nameInputScreen.addChild(nameInputBg);
+
+           var nameInputLabel = new PIXI.extras.BitmapText("What's your name?", {
+            font: 'KBPinkLipgloss',
+            tint: 0x000000
+          });
+          nameInputLabel.position.set(500,200);
+          nameInputLabel.scale.set(0.9);
+          nameInputBg.addChild(nameInputLabel);
+
 
       var resultsScreen = new PIXI.Container();
       resultsScreen.visible = false;
@@ -1721,6 +1757,7 @@ var buildSceneGraph = function () {
         feedSpeedContainer: feedSpeedContainer,
         feedSpeedSymbolContainer: feedSpeedSymbolContainer,
         startScreen: startScreen,
+        nameInputScreen: nameInputScreen,
         resultsScreen: resultsScreen,
         congratulations: congratulations,
         leaderboardContainer: leaderboardContainer,
@@ -1837,6 +1874,27 @@ var STATE_TRANSITIONS = {
   PLAYING: {
     enter: function(sceneIndex) {
       startRound(sceneIndex);
+    }
+  },
+
+  GET_NAME: {
+    enter: function(sceneIndex) {
+      var nameInput = document.getElementById('name-input');
+      nameInput.style.visibility = 'visible';
+
+//       nameInput.onkeypress = function() {
+//         g_eventQueue.push({ type: 'keydown', event: e });
+//       }
+
+      sceneIndex.nameInputScreen.visible = true;
+    },
+    exit: function(sceneIndex) {
+      var nameInput = document.getElementById('name-input');
+      nameInput.style.visibility = 'hidden';
+
+      g_name = nameInput.value;
+
+      sceneIndex.nameInputScreen.visible = false;
     }
   },
 
