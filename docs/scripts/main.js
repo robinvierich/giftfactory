@@ -516,7 +516,9 @@ var addGift = function(giftContainer) {
 };
 
 var removeGift = function(gift) {
-  gift.parent.removeChild(gift);
+  if (gift.parent) {
+    gift.parent.removeChild(gift);  
+  }
 };
 
 var clearGifts = function(giftContainer) {
@@ -1312,8 +1314,14 @@ var startRound = function(sceneIndex) {
   g_score = 0;
   g_selectedTimeBetweenFeedIndex = 0;
   g_playerBestTimeEntry = null;
+  g_giftToType.clear();
+  g_giftToConveyorBelt.clear();
   sceneIndex.sack.gotoAndStop(0);
   clearGifts(sceneIndex.giftContainer);
+  clearGifts(sceneIndex.giftGrabContainer);
+  clearGifts(sceneIndex.spitOutContainer);
+  g_giftToType.clear();
+  g_giftToConveyorBelt.clear();
 }
 
 
