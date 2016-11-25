@@ -713,11 +713,11 @@ var processKeyDown = function(dt, event, sceneIndex) {
     return;
   }
 
-  if (isInState(STATES.PLAYING)) {
-    // TODO: CHANGE BACK!!!!!!
-    transitionToState(STATES.FINISHED, sceneIndex);
-    return;
-  }
+// --------- FOR TESTING ONLY --------- 
+//   if (isInState(STATES.PLAYING)) {
+//     transitionToState(STATES.FINISHED, sceneIndex);
+//     return;
+//   }
 
   if (event.key === KEYS.SPEED_UP) {
     increaseFeedSpeed();
@@ -1690,7 +1690,7 @@ var buildSceneGraph = function () {
             yourTimeContainer.addChild(yourTimeTextContainer);
 
           var leaderboardContainer = new PIXI.Container();
-          leaderboardContainer.y = 400;
+          leaderboardContainer.y = 450;
           leaderboardContainer.x = resultsBg.width / 2 + 50;
           resultsBg.addChild(leaderboardContainer);
 
