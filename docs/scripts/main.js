@@ -140,6 +140,8 @@ var g_score = 0;
 var g_roundStartTime = null;
 var g_roundEndTime = null;
 
+var g_resultsVisibleTime = null;
+
 // {name: 'name', score: 0}
 var g_bestTimes = [];
 var g_playerBestTimeEntry = null;
@@ -323,6 +325,10 @@ var linear = function(t, start, end) {
 
 var quadIn = function(t, start, end) {
   return (end - start) * (t * t) + start;
+};
+
+var quadOut = function(t, start, end) {
+  return (start - end) * (t * (t - 2)) + start;
 };
 
 var lutEasing = function (lut, t) {
@@ -1119,11 +1125,42 @@ var createLeaderboard = function(sceneIndex, bestTimes, playerBestTimeEntry) {
   }
 };
 
+var runResultsScreenTween = function(sceneIndex) {
+  var DURATION = 0.5;
+  var WAIT_DURATION = 0.8;
+
+  var congratulations = sceneIndex.congratulations;
+
+  var congratulationsOutTween = createTween(congratulations.position, 
+    new PIXI.Point(congratulations.x, HEIGHT / 2), 
+    new PIXI.Point(congratulations.x, -HEIGHT - congratulations.height / 2), 
+    DURATION, 
+    quadIn,  
+    function() {
+      sceneIndex.resultsScreen.visible = true;
+    }
+   );
+  var congratulationsWaitTween = createTimerTween(WAIT_DURATION, function() {
+    startTween(congratulationsOutTween);
+  });
+  var congratulationsInTween = createTween(congratulations.position, 
+    new PIXI.Point(congratulations.x, HEIGHT + congratulations.height / 2), 
+    new PIXI.Point(congratulations.x, HEIGHT / 2), 
+    DURATION, 
+    quadOut,
+    function() {
+      startTween(congratulationsWaitTween);
+    }
+  );
+
+  startTween(congratulationsInTween);
+};
+
 
 var updateYourTimeResult = function(sceneIndex, roundTime) {
   var yourTimeTextContainer = sceneIndex.yourTimeTextContainer;
   yourTimeTextContainer.removeChildren();
-  
+
   var timeContainer = createTimeContainer(roundTime, "KBPinkLipgloss", false);
   yourTimeTextContainer.addChild(timeContainer);
 
@@ -1810,6 +1847,9 @@ var STATE_TRANSITIONS = {
 
       var roundTime = g_roundEndTime - g_roundStartTime;
       g_playerBestTimeEntry = finishGame(sceneIndex, g_bestTimes, roundTime);
+
+      sceneIndex.congratulations.y = 150;
+      runResultsScreenTween(sceneIndex);
 
       createLeaderboard(sceneIndex, g_bestTimes, g_playerBestTimeEntry);
       updateYourTimeResult(sceneIndex, roundTime);
