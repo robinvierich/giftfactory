@@ -191,6 +191,7 @@ var loadSfx = function(audioCtx) {
 var loadMusic = function(audioCtx) {
   var musicAudioData = loadAudio(audioCtx, ASSET_PATHS.BG_MUSIC);
   musicAudioData.gainNode.gain.value = 0.5;
+  musicAudioData.elem.loop = true;
 };
 
 
@@ -417,7 +418,7 @@ var createRandomGift = function(type) {
   var giftAsset = giftAssetList[Math.floor(Math.random() * giftAssetList.length)];
 
   var gift = PIXI.Sprite.fromFrame(giftAsset);
-  gift.anchor.set(0.5, 1);
+  gift.anchor.set(0.5, 0.5);
   gift.scale.set(ASSET_SCALE_X, ASSET_SCALE_Y);
 
   return gift;
@@ -520,6 +521,8 @@ var feedGifts = function(conveyorBelt, giftContainer, sack) {
   for(var i = 0; i < gifts.length; i++) {
     var gift = gifts[i];
     var nextGiftTransform = giftTransforms[i];
+    nextGiftTransform.position.y -= gift.height / 2;
+    
     createGiftTweens(gift, nextGiftTransform.position, nextGiftTransform.rotation, FEED_DURATION);
   }
 
@@ -739,6 +742,10 @@ var spitOutGifts = function(count, badGift, sceneIndex) {
   });
 
   for (var i = 0; i < gifts.length; i++) {
+    var endRotation = Math.PI + (Math.random() * 2 * Math.PI);
+    var rotateTween = createTween(gift, {rotation: gift.rotation}, {rotation: endRotation}, GIFT_TWEEN_DURATION, linear);
+    startTween(rotateTween);
+
     var gift = gifts[i];
     var tween = createTween(gift.position, startPos, endPositions[i], GIFT_TWEEN_DURATION, easingFns[i]);
     startTween(tween);
