@@ -1,4 +1,4 @@
-var DEBUG_CONVEYOR_BELT_NUMBERS = true;
+var DEBUG_CONVEYOR_BELT_NUMBERS = false;
 
 
 var ASSET_PATHS = {
