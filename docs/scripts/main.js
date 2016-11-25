@@ -1323,9 +1323,10 @@ var startRound = function(sceneIndex) {
   g_giftToType.clear();
   g_giftToConveyorBelt.clear();
   
-  var conveyorBelts = g_conveyorBeltToGifts.keys();
-  for (var i = 0; i < conveyorBelts.length; i++) {
-    var conveyorBelt = conveyorBelts[i];
+  var conveyorBeltsIter = g_conveyorBeltToGifts.keys();
+  
+  var conveyorBelt = null;
+  while (conveyorBelt = conveyorBeltsIter.next()) {
     g_conveyorBeltToGifts.set(conveyorBelt, []);
   }
 }
