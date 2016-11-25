@@ -103,6 +103,7 @@ var g_conveyorBeltToData = new Map();
 var g_keyToConveyorBelt = new Map();
 
 var g_giftToType = new Map();
+var g_giftToConveyorBelt = new Map();
 
 var g_eventQueue = [];
 var g_tweens = [];
@@ -476,30 +477,38 @@ var createConveyorBeltFeedTween = function(conveyorBelt, duration) {
 };
 
 var createFallingTween = function(gift, sack, direction) {
-  var DROP_DURATION = 0.5;;
+  var DROP_DURATION = 0.5;
+
+  var giftOnTop = gift. y 
 
   var directionMultiplier = (direction === LEFT) ? 1 : -1;
+  var conveyorBelt = g_giftToConveyorBelt.get(gift);
+  var topOrBottom = g_conveyorBeltToData.get(conveyorBelt).topOrBottom;
 
   var startPos = new PIXI.Point(gift.x, gift.y);
-  var endPos = new PIXI.Point(sack.x + directionMultiplier * 20, sack.y)
+  var endPos = new PIXI.Point(sack.x + directionMultiplier * 80, sack.y)
+
+  var cp1x = topOrBottom === TOP ? endPos.x - directionMultiplier * 100:  endPos.x - directionMultiplier * 100;
+  var cp1y = startPos.y;
+
+  var cp2x = endPos.x + directionMultiplier * 10;
+  var cp2y = topOrBottom === TOP ? endPos.y - 700 : endPos.y - 400;
 
   var bezier = new Bezier(
     startPos.x, startPos.y,
-    endPos.x, startPos.y,
-    //startPos.x + directionMultiplier * 100, startPos.y,
-    // endPos.x - directionMultiplier * 10, endPos.y - 200,
-    endPos.x - directionMultiplier * 10, endPos.y - 200,
+    cp1x, cp1y,
+    cp2x, cp2y,
     endPos.x, endPos.y
   );
 
-  var fallEasing = lutEasing.bind(null, bezier.getLUT(DROP_DURATION * FPS));
+  var fallEasing = lutEasing.bind(null, bezier.getLUT(DROP_DURATION * FPS * 2));
 
   var positionTween = createTween(gift.position, startPos, endPos, DROP_DURATION, fallEasing);
   startTween(positionTween);
 
   
   var startRot = gift.rotation;
-  var endRot = directionMultiplier * (Math.random() * Math.PI / 4 + Math.PI / 8);
+  var endRot = directionMultiplier * (Math.PI / 2); //(Math.random() * Math.PI / 4 + Math.PI / 8);
 
   var rotationTween = createTween(gift, {rotation: gift.rotation}, {rotation: endRot}, DROP_DURATION, linear);
   startTween(rotationTween);
@@ -508,6 +517,7 @@ var createFallingTween = function(gift, sack, direction) {
 var feedGifts = function(conveyorBelt, giftContainer, sack) {
   var newGift = addGift(giftContainer);
   newGift.position = getGiftStartPosition(newGift, conveyorBelt);
+  g_giftToConveyorBelt.set(newGift, conveyorBelt);
 
   var gifts = g_conveyorBeltToGifts.get(conveyorBelt);
   var giftTransforms = getGiftTransforms(conveyorBelt);
@@ -522,7 +532,7 @@ var feedGifts = function(conveyorBelt, giftContainer, sack) {
     var gift = gifts[i];
     var nextGiftTransform = giftTransforms[i];
     nextGiftTransform.position.y -= gift.height / 2;
-    
+
     createGiftTweens(gift, nextGiftTransform.position, nextGiftTransform.rotation, FEED_DURATION);
   }
 
