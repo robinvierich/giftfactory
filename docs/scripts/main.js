@@ -1038,13 +1038,13 @@ var createLeaderboardRow = function(bestTimeEntry, idx) {
 
 var ROW_HEIGHT = 80; 
 
-var getRowY = function(row, rowIdx) {
+var getRowY = function(rowIdx) {
   return (ROW_HEIGHT) * rowIdx + LEADERBOARD_ROW_PADDING;
 }
 
 var getYourHighlight = function(row, rowIdx) {
   var yourHighlight = PIXI.Sprite.fromFrame(ASSET_PATHS.RESULTS.LIST_HIGHLIGHT);
-  yourHighlight.y = getRowY(row, rowIdx) - row.height / 2;
+  yourHighlight.y = getRowY(rowIdx) - row.height / 2;
   yourHighlight.x -= 30;
 
   return yourHighlight;
@@ -1064,7 +1064,7 @@ var createNonDividedLeaderboard = function(leaderboardContainer, bestTimes, play
       topSevenContainer.addChild(yourHighlight);
     }
 
-    row.y = getRowY(row, i);
+    row.y = getRowY(i);
     topSevenContainer.addChild(row);
   }
 }
@@ -1075,11 +1075,13 @@ var createDividedLeaderboard = function(leaderboardContainer, bestTimes, playerB
 
     for (i = 0; i < 3; i++) {
       var row = createLeaderboardRow(bestTimes[i], i);
-      row.y = getRowY(row, i);
+      row.y = getRowY(i);
       topThreeContainer.addChild(row);
     }
 
   var divider = new PIXI.Sprite.fromFrame(ASSET_PATHS.RESULTS.LIST_DIVIDER);
+  divider.y = getRowY(3) + 10;
+  divider.x = 220;
   leaderboardContainer.addChild(divider);
 
   var yourThreeContainer = new PIXI.Container();
@@ -1098,7 +1100,7 @@ var createDividedLeaderboard = function(leaderboardContainer, bestTimes, playerB
         yourThreeContainer.addChild(yourHighlight);
       }
 
-      row.y = getRowY(row, rowIdx);
+      row.y = getRowY(rowIdx);
       yourThreeContainer.addChild(row);
     }
 };
@@ -1108,11 +1110,24 @@ var createLeaderboard = function(sceneIndex, bestTimes, playerBestTimeEntry) {
 
   var leaderboardContainer = sceneIndex.leaderboardContainer;
 
+  leaderboardContainer.removeChildren();
+
   if (yourIndex < 7) {
     createNonDividedLeaderboard(leaderboardContainer, bestTimes, playerBestTimeEntry, yourIndex);
   } else {
     createDividedLeaderboard(leaderboardContainer, bestTimes, playerBestTimeEntry, yourIndex);
   }
+};
+
+
+var updateYourTimeResult = function(sceneIndex, roundTime) {
+  var yourTimeTextContainer = sceneIndex.yourTimeTextContainer;
+  yourTimeTextContainer.removeChildren();
+  
+  var timeContainer = createTimeContainer(roundTime, "KBPinkLipgloss", false);
+  yourTimeTextContainer.addChild(timeContainer);
+
+  timeContainer.x =(yourTimeTextContainer.width / 2 - timeContainer.width / 2) + 20;
 };
 
 var updateResultsScreen = function(dt, sceneIndex, bestTimes, roundTime, playerBestTimeEntry) {
@@ -1632,14 +1647,10 @@ var buildSceneGraph = function () {
             yourTimeHighlight.y = 100;
             yourTimeContainer.addChild(yourTimeHighlight);
 
-            var yourTimeText = new PIXI.extras.BitmapText("0:00:000", {
-              font: 'KBPinkLipgloss',
-              tint: 0x000000
-            });
-            yourTimeText.scale.set(0.9);
-            yourTimeText.y = yourTimeHighlight.y + 20;
-            yourTimeText.x = yourTimeHighlight.x + 50;
-            yourTimeContainer.addChild(yourTimeText);
+            var yourTimeTextContainer = new PIXI.Container();
+            yourTimeTextContainer.y = yourTimeHighlight.y + 20;
+            yourTimeTextContainer.x = yourTimeHighlight.x + 50;
+            yourTimeContainer.addChild(yourTimeTextContainer);
 
           var leaderboardContainer = new PIXI.Container();
           leaderboardContainer.y = 400;
@@ -1672,6 +1683,7 @@ var buildSceneGraph = function () {
         resultsScreen: resultsScreen,
         congratulations: congratulations,
         leaderboardContainer: leaderboardContainer,
+        yourTimeTextContainer: yourTimeTextContainer,
   };
 };
 
@@ -1800,6 +1812,7 @@ var STATE_TRANSITIONS = {
       g_playerBestTimeEntry = finishGame(sceneIndex, g_bestTimes, roundTime);
 
       createLeaderboard(sceneIndex, g_bestTimes, g_playerBestTimeEntry);
+      updateYourTimeResult(sceneIndex, roundTime);
     },
 
     exit: function(sceneIndex) {
