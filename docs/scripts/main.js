@@ -19,6 +19,8 @@ var ASSET_PATHS = {
 
   SPOTLIGHT: 'images/platform-halo.png',
 
+  SPEED_SYMBOL: 'images/speed-symbol.png',
+
   GIFTS: [
     'images/item-gift1-xmas.png',
     'images/item-gift2-xmas.png',
@@ -49,6 +51,15 @@ var ASSET_PATHS = {
     FIDGETING2: 'images/arms-handsFidgeting2.png'
   },
 
+  RESULTS: {
+    CONGRATULATIONS: 'images/congratulations.png',
+    SCROLL: 'images/scroll-full.png',
+    BADGE: 'images/elf-badge.png',
+    LIST_DIVIDER: 'images/result-list-divider.png',
+    LIST_HIGHLIGHT: 'images/result-list-highlight.png',
+    TIME_HIGHLIGHT: 'images/result-time-field.png',
+  },
+
   BG_MUSIC: 'audio/music/Jordan_Gladstone_-_07_-_The_Christmas_is_in_Another_Castle.mp3',
   SFX: {
     DING: 'audio/sfx/ding.wav',
@@ -58,6 +69,7 @@ var ASSET_PATHS = {
 
   FONTS: {
     BAAR_GOETHEANIS: 'fonts/baar_goetheanis_regular.xml',
+    KB_PINK_LIPGLOSS: 'fonts/KBPinkLipgloss.xml',
   }
 };
 
@@ -131,7 +143,7 @@ var g_roundEndTime = null;
 // {name: 'name', score: 0}
 var g_bestTimes = [];
 var g_playerBestTimeEntry = null;
-var NUM_BEST_TIMES_TO_STORE = 10;
+var NUM_BEST_TIMES_TO_STORE = Infinity;
 
 var STATES = {
   STARTING: 'STARTING',
@@ -695,6 +707,12 @@ var processKeyDown = function(dt, event, sceneIndex) {
     return;
   }
 
+  if (isInState(STATES.PLAYING)) {
+    // TODO: CHANGE BACK!!!!!!
+    transitionToState(STATES.FINISHED, sceneIndex);
+    return;
+  }
+
   if (event.key === KEYS.SPEED_UP) {
     increaseFeedSpeed();
     return;
@@ -881,7 +899,7 @@ var getStopwatchSecondsText = function(milliseconds) {
 var getStopwatchMinutesText = function(milliseconds) {
   var seconds = milliseconds >= 1000 ? Math.floor(milliseconds / 1000) : 0;
   var minutes = seconds >= 60 ? Math.floor(seconds / 60) : 0;
-  return (minutes > 0 ? minutes + ':' : '')
+  return (minutes + ':');
 };
 
 var updateStopwatch = function(sceneIndex, roundStartTime) {
@@ -948,14 +966,161 @@ var updateStartScreen = function(dt, sceneIndex) {
   // probably some text animation??
 };
 
+var createTimeContainer = function(milliseconds, font, tint, useOutline) {
+  var timeContainer = new PIXI.Container();
+
+    var createTextFn = useOutline ? createTextContainerWithOutline : function(str, opts) { return new PIXI.extras.BitmapText(str, opts); }
+
+    var timeMinutesText = createTextFn(getStopwatchMinutesText(milliseconds), {
+      font: font,
+      tint: tint
+    });
+    timeContainer.addChild(timeMinutesText);
+
+    var timeSecondsText = createTextFn(getStopwatchSecondsText(milliseconds), {
+      font: font,
+      tint: tint
+    });
+    timeSecondsText.x = timeMinutesText.x + timeMinutesText.width + 10;
+    timeContainer.addChild(timeSecondsText);
+
+    var timeSecondsSeperatorText = createTextFn(':', {
+      font: font,
+      tint: tint
+    });
+    timeSecondsSeperatorText.x = timeSecondsText.x + timeSecondsText.width;
+    timeSecondsSeperatorText.scale.set(0.5);
+    timeSecondsSeperatorText.y = timeSecondsText.height - timeSecondsSeperatorText.height;
+    timeContainer.addChild(timeSecondsSeperatorText);
+
+    var timeMillisecondsText = createTextFn(getStopwatchMillisecondsText(milliseconds), {
+      font: font,
+      tint: tint
+    });
+    timeMillisecondsText.scale.set(0.5);
+    timeMillisecondsText.x = timeSecondsSeperatorText.x + timeSecondsSeperatorText.width + 10;
+    timeMillisecondsText.y = timeSecondsSeperatorText.y;
+
+    timeContainer.addChild(timeMillisecondsText);
+   
+  return timeContainer;
+};
+
+
+var LEADERBOARD_ROW_PADDING = 10;
+var DEFAULT_NAME = 'TOP ELF';
+
+var createLeaderboardRow = function(bestTimeEntry, idx) {
+  var row = new PIXI.Container();
+
+    var rank = new PIXI.extras.BitmapText((idx + 1).toString() + '.', {
+      font: "KBPinkLipgloss",
+      tint: 0x000000
+    });
+    row.addChild(rank);
+
+    var name = new PIXI.extras.BitmapText(bestTimeEntry.name || DEFAULT_NAME, {
+      font: "KBPinkLipgloss",
+      tint: 0x000000
+    });
+    name.x = rank.x + rank.width + 40;
+    name.width = Math.min(name.width, 600);
+    row.addChild(name);
+
+    var time = createTimeContainer(bestTimeEntry.time, "KBPinkLipgloss", false);
+    time.x = 900;
+    row.addChild(time);
+
+  
+  row.scale.set(0.5);
+  return row;
+};
+
+var ROW_HEIGHT = 80; 
+
+var getRowY = function(row, rowIdx) {
+  return (ROW_HEIGHT) * rowIdx + LEADERBOARD_ROW_PADDING;
+}
+
+var getYourHighlight = function(row, rowIdx) {
+  var yourHighlight = PIXI.Sprite.fromFrame(ASSET_PATHS.RESULTS.LIST_HIGHLIGHT);
+  yourHighlight.y = getRowY(row, rowIdx) - row.height / 2;
+  yourHighlight.x -= 30;
+
+  return yourHighlight;
+}
+
+var createNonDividedLeaderboard = function(leaderboardContainer, bestTimes, playerBestTimeEntry, yourIndex) {
+  var topSevenContainer =  new PIXI.Container();
+  leaderboardContainer.addChild(topSevenContainer);
+
+  var maxIdx = Math.min(6, bestTimes.length - 1);
+  
+  for (i = 0; i <= maxIdx; i++) {
+    var row = createLeaderboardRow(bestTimes[i], i);
+
+    if (i === yourIndex) {
+      var yourHighlight = getYourHighlight(row, i);
+      topSevenContainer.addChild(yourHighlight);
+    }
+
+    row.y = getRowY(row, i);
+    topSevenContainer.addChild(row);
+  }
+}
+
+var createDividedLeaderboard = function(leaderboardContainer, bestTimes, playerBestTimeEntry, yourIndex) {
+  var topThreeContainer = new PIXI.Container();
+  leaderboardContainer.addChild(topThreeContainer);
+
+    for (i = 0; i < 3; i++) {
+      var row = createLeaderboardRow(bestTimes[i], i);
+      row.y = getRowY(row, i);
+      topThreeContainer.addChild(row);
+    }
+
+  var divider = new PIXI.Sprite.fromFrame(ASSET_PATHS.RESULTS.LIST_DIVIDER);
+  leaderboardContainer.addChild(divider);
+
+  var yourThreeContainer = new PIXI.Container();
+  leaderboardContainer.addChild(yourThreeContainer); 
+
+    var minIdx = Math.max(yourIndex - 1, 0);
+    var maxIdx = Math.min(yourIndex + 1, bestTimes.length - 1);
+
+    for (i = minIdx; i <= maxIdx; i++) {
+
+      var rowIdx = i - minIdx + 4;
+      var row = createLeaderboardRow(bestTimes[i], i);
+      
+      if (i === yourIndex) {
+        var yourHighlight = getYourHighlight(row, rowIdx);
+        yourThreeContainer.addChild(yourHighlight);
+      }
+
+      row.y = getRowY(row, rowIdx);
+      yourThreeContainer.addChild(row);
+    }
+};
+
+var createLeaderboard = function(sceneIndex, bestTimes, playerBestTimeEntry) {
+  var yourIndex = bestTimes.indexOf(playerBestTimeEntry);
+
+  var leaderboardContainer = sceneIndex.leaderboardContainer;
+
+  if (yourIndex < 7) {
+    createNonDividedLeaderboard(leaderboardContainer, bestTimes, playerBestTimeEntry, yourIndex);
+  } else {
+    createDividedLeaderboard(leaderboardContainer, bestTimes, playerBestTimeEntry, yourIndex);
+  }
+};
+
 var updateResultsScreen = function(dt, sceneIndex, bestTimes, roundTime, playerBestTimeEntry) {
   var winMsg = "You Win! You filled Santa's gift bag in " + Math.round(roundTime / 10) / 100 + ' seconds.\n';
 
   if (playerBestTimeEntry) {
     winMsg += 'You made it to number ' + (bestTimes.indexOf(playerBestTimeEntry) + 1) + ' on the leaderboard! Great job!'
   }
-
-  sceneIndex.resultsText.text = winMsg;
 }
 
 var askForPlayerName = function() {
@@ -969,11 +1134,11 @@ var showFinishScreen = function(sceneIndex, bestTimes, roundTime, playerBestTime
 var finishGame = function(sceneIndex, bestTimes, roundTime) {
   var playerBestTimeEntry = null;
 
-  if (isNewBestTime(bestTimes, roundTime)) {
-    var playerName = askForPlayerName();
-    var playerBestTimeEntry = updateBestTimes(bestTimes, roundTime, playerName);
-    saveBestTimes(bestTimes);
-  }
+  //if (isNewBestTime(bestTimes, roundTime)) {
+  var playerName = askForPlayerName();
+  var playerBestTimeEntry = updateBestTimes(bestTimes, roundTime, playerName);
+  saveBestTimes(bestTimes);
+  //}
   
   return playerBestTimeEntry;
 }
@@ -1392,9 +1557,7 @@ var buildSceneGraph = function () {
         feedSpeedContainer.addChild(feedSpeedSymbolContainer);
           
           for (var i = 0; i < TIME_BETWEEN_FEED_OPTIONS.length; i++) {
-             var feedSpeedSymbol = createTextContainerWithOutline("+", {
-              font: "BaarGoetheanis"
-            });
+             var feedSpeedSymbol = PIXI.Sprite.fromFrame(ASSET_PATHS.SPEED_SYMBOL);
             feedSpeedSymbolContainer.addChild(feedSpeedSymbol);
             feedSpeedSymbol.x = (feedSpeedSymbol.width + SYMBOL_MARGIN) * i
             feedSpeedSymbol.tint = DISABLED_TINT;
@@ -1416,11 +1579,72 @@ var buildSceneGraph = function () {
       resultsScreen.visible = false;
       worldContainer.addChild(resultsScreen);
 
-        var resultsText = createTextContainerWithOutline('RESULTS GO HERE!', {
-          font: 'BaarGoetheanis'
-        })
-        resultsText.scale.set(0.66);
-        resultsScreen.addChild(resultsText);
+        var resultsBg = PIXI.Sprite.fromFrame(ASSET_PATHS.RESULTS.SCROLL)
+        resultsBg.scale.set(ASSET_SCALE_X, ASSET_SCALE_Y);
+        resultsBg.position.set(WIDTH / 2 - resultsBg.width / 2, HEIGHT / 2 - resultsBg.height / 2);
+        resultsScreen.addChild(resultsBg);
+
+        var congratulations = PIXI.Sprite.fromFrame(ASSET_PATHS.RESULTS.CONGRATULATIONS);
+        congratulations.anchor.set(0.5, 0.5);
+        congratulations.x = WIDTH/2;
+        congratulations.y = 150;
+        resultsScreen.addChild(congratulations);
+
+          var resultsBadge = PIXI.Sprite.fromFrame(ASSET_PATHS.RESULTS.BADGE);
+          resultsBadge.scale.set(ASSET_SCALE_X, ASSET_SCALE_Y);
+          resultsBadge.position.set(200, 180);
+          resultsBg.addChild(resultsBadge);
+
+          var titleContainer = new PIXI.Container();
+          titleContainer.position.set(550, 180);
+          resultsBg.addChild(titleContainer);
+
+            var bigTitle = new PIXI.extras.BitmapText("You're on the list!", {
+              font: 'KBPinkLipgloss',
+              tint: 0x000000
+            });
+            bigTitle.position.set(80,0);
+            bigTitle.scale.set(0.9);
+            titleContainer.addChild(bigTitle);
+
+            var subTitle = new PIXI.extras.BitmapText("(the good one)", {
+              font: 'KBPinkLipgloss',
+              tint: 0x000000
+            });
+            subTitle.position.set(250, 120);
+            subTitle.scale.set(0.6)
+            titleContainer.addChild(subTitle);
+
+          var yourTimeContainer = new PIXI.Container();
+          yourTimeContainer.x = 200;
+          yourTimeContainer.y = 550;
+          resultsBg.addChild(yourTimeContainer);
+
+            var yourTimeLabel = new PIXI.extras.BitmapText("YOUR TIME", {
+              font: 'KBPinkLipgloss',
+              tint: 0x000000
+            });
+            yourTimeLabel.x = 100;
+            yourTimeLabel.scale.set(0.6);
+            yourTimeContainer.addChild(yourTimeLabel);
+
+            var yourTimeHighlight = PIXI.Sprite.fromFrame(ASSET_PATHS.RESULTS.TIME_HIGHLIGHT);
+            yourTimeHighlight.y = 100;
+            yourTimeContainer.addChild(yourTimeHighlight);
+
+            var yourTimeText = new PIXI.extras.BitmapText("0:00:000", {
+              font: 'KBPinkLipgloss',
+              tint: 0x000000
+            });
+            yourTimeText.scale.set(0.9);
+            yourTimeText.y = yourTimeHighlight.y + 20;
+            yourTimeText.x = yourTimeHighlight.x + 50;
+            yourTimeContainer.addChild(yourTimeText);
+
+          var leaderboardContainer = new PIXI.Container();
+          leaderboardContainer.y = 400;
+          leaderboardContainer.x = resultsBg.width / 2 + 50;
+          resultsBg.addChild(leaderboardContainer);
 
 
   return {
@@ -1446,7 +1670,8 @@ var buildSceneGraph = function () {
         feedSpeedSymbolContainer: feedSpeedSymbolContainer,
         startScreen: startScreen,
         resultsScreen: resultsScreen,
-        resultsText: resultsText
+        congratulations: congratulations,
+        leaderboardContainer: leaderboardContainer,
   };
 };
 
@@ -1481,8 +1706,8 @@ var loadAssetObject = function (loader, assetObj) {
 var showLoadingText = function(renderer) {
   var loader = new PIXI.loaders.Loader();
 
-  var loadingText = new PIXI.Text('Loading', {
-    font: 'Arial',
+  var loadingText = new PIXI.Text('Loading...', {
+    fontFamily: 'Arial',
     fill: 0xFFFFFF,
     fontSize: 72
   });
@@ -1573,6 +1798,8 @@ var STATE_TRANSITIONS = {
 
       var roundTime = g_roundEndTime - g_roundStartTime;
       g_playerBestTimeEntry = finishGame(sceneIndex, g_bestTimes, roundTime);
+
+      createLeaderboard(sceneIndex, g_bestTimes, g_playerBestTimeEntry);
     },
 
     exit: function(sceneIndex) {
