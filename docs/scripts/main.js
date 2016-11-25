@@ -1322,7 +1322,12 @@ var startRound = function(sceneIndex) {
   clearGifts(sceneIndex.spitOutContainer);
   g_giftToType.clear();
   g_giftToConveyorBelt.clear();
-  g_conveyorBeltToGifts.clear();
+  
+  var conveyorBelts = g_conveyorBeltToGifts.keys();
+  for (var i = 0; i < conveyorBelts.length; i++) {
+    var conveyorBelt = conveyorBelts[i];
+    g_conveyorBeltToGifts.set(conveyorBelt, []);
+  }
 }
 
 
