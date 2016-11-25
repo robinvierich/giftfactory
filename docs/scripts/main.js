@@ -1322,6 +1322,7 @@ var startRound = function(sceneIndex) {
   clearGifts(sceneIndex.spitOutContainer);
   g_giftToType.clear();
   g_giftToConveyorBelt.clear();
+  g_conveyorBeltToGifts.clear();
 }
 
 
